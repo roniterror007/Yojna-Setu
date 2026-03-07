@@ -1,0 +1,660 @@
+[
+  {
+    "id": "pm-kisan",
+    "name": "PM-KISAN",
+    "fullName": "Pradhan Mantri Kisan Samman Nidhi",
+    "category": "agriculture",
+    "benefit": {
+      "amount": 6000,
+      "currency": "INR",
+      "type": "cash",
+      "frequency": "yearly",
+      "description": "₹6,000 per year paid in 3 installments of ₹2,000 directly to bank account"
+    },
+    "eligibility": {
+      "occupation": [
+        "farmer",
+        "agriculturist"
+      ],
+      "land": "small/marginal (up to 2 hectares)",
+      "income": null,
+      "age": {
+        "min": 18
+      },
+      "notes": "Land must be in farmer's name. Excludes government employees, income taxpayers."
+    },
+    "tags": [
+      "farmer",
+      "agriculture",
+      "cash transfer",
+      "rural",
+      "BPL",
+      "land owner"
+    ],
+    "lastUpdated": "2025-02-01"
+  },
+  {
+    "id": "ayushman-bharat",
+    "name": "Ayushman Bharat - PMJAY",
+    "fullName": "Pradhan Mantri Jan Arogya Yojana",
+    "category": "health",
+    "benefit": {
+      "amount": 500000,
+      "currency": "INR",
+      "type": "insurance",
+      "frequency": "yearly",
+      "description": "Health insurance coverage of ₹5 lakh per year per family for hospitalisation"
+    },
+    "eligibility": {
+      "income": "BPL / economically weaker sections",
+      "occupation": [
+        "all"
+      ],
+      "notes": "Based on SECC 2011 data. Covers poor and vulnerable families. No premium for beneficiaries."
+    },
+    "tags": [
+      "health",
+      "insurance",
+      "hospital",
+      "BPL",
+      "poor",
+      "family",
+      "medical"
+    ],
+    "lastUpdated": "2025-01-15"
+  },
+  {
+    "id": "pmay-gramin",
+    "name": "PMAY-G",
+    "fullName": "Pradhan Mantri Awas Yojana - Gramin",
+    "category": "housing",
+    "benefit": {
+      "amount": 120000,
+      "currency": "INR",
+      "type": "subsidy",
+      "frequency": "one-time",
+      "description": "₹1.20 lakh in plains (₹1.30 lakh in hilly/NE states) for house construction"
+    },
+    "eligibility": {
+      "residence": "rural",
+      "housing": "homeless or katcha house",
+      "income": "BPL / SECC listed",
+      "occupation": [
+        "all"
+      ],
+      "notes": "Priority to SC/ST, minorities, disabled, women-headed households"
+    },
+    "tags": [
+      "housing",
+      "home",
+      "rural",
+      "BPL",
+      "construction",
+      "SC",
+      "ST",
+      "women"
+    ],
+    "lastUpdated": "2024-12-01"
+  },
+  {
+    "id": "pmuy",
+    "name": "Ujjwala Yojana",
+    "fullName": "Pradhan Mantri Ujjwala Yojana",
+    "category": "energy",
+    "benefit": {
+      "amount": 1600,
+      "currency": "INR",
+      "type": "subsidy",
+      "frequency": "one-time",
+      "description": "Free LPG connection with ₹1,600 financial assistance for deposit, stove and first refill"
+    },
+    "eligibility": {
+      "gender": "female",
+      "income": "BPL / poor families",
+      "age": {
+        "min": 18
+      },
+      "notes": "Beneficiary must be adult woman. Family should not already have LPG connection."
+    },
+    "tags": [
+      "women",
+      "cooking",
+      "LPG",
+      "gas",
+      "BPL",
+      "rural",
+      "kitchen",
+      "pregnant",
+      "mother",
+      "housewife"
+    ],
+    "lastUpdated": "2024-11-01"
+  },
+  {
+    "id": "mgnrega",
+    "name": "MGNREGA",
+    "fullName": "Mahatma Gandhi National Rural Employment Guarantee Act",
+    "category": "employment",
+    "benefit": {
+      "amount": 267,
+      "currency": "INR",
+      "type": "wage",
+      "frequency": "daily",
+      "description": "Guaranteed 100 days of employment per year at minimum ₹267/day wage (varies by state)"
+    },
+    "eligibility": {
+      "residence": "rural",
+      "age": {
+        "min": 18
+      },
+      "occupation": [
+        "unskilled manual worker"
+      ],
+      "notes": "Any rural adult willing to do unskilled manual work. Job card required."
+    },
+    "tags": [
+      "employment",
+      "rural",
+      "labour",
+      "job",
+      "wages",
+      "guarantee",
+      "farmer",
+      "BPL",
+      "daily labourer",
+      "poor"
+    ],
+    "lastUpdated": "2025-03-01"
+  },
+  {
+    "id": "pm-mudra",
+    "name": "PM Mudra Yojana",
+    "fullName": "Pradhan Mantri MUDRA Yojana",
+    "category": "business",
+    "benefit": {
+      "amount": 1000000,
+      "currency": "INR",
+      "type": "loan",
+      "frequency": "one-time",
+      "description": "Collateral-free loans: Shishu (up to ₹50,000), Kishore (₹50,000-5 lakh), Tarun (₹5-10 lakh)"
+    },
+    "eligibility": {
+      "occupation": [
+        "self-employed",
+        "micro-entrepreneur",
+        "small business"
+      ],
+      "age": {
+        "min": 18
+      },
+      "notes": "Non-corporate, non-farm small businesses. Good credit history needed."
+    },
+    "tags": [
+      "business",
+      "loan",
+      "entrepreneur",
+      "self-employed",
+      "small business",
+      "startup"
+    ],
+    "lastUpdated": "2025-01-01"
+  },
+  {
+    "id": "pmsby",
+    "name": "PMSBY",
+    "fullName": "Pradhan Mantri Suraksha Bima Yojana",
+    "category": "insurance",
+    "benefit": {
+      "amount": 200000,
+      "currency": "INR",
+      "type": "insurance",
+      "frequency": "yearly",
+      "description": "Accidental death/disability insurance of ₹2 lakh at just ₹20 per year premium"
+    },
+    "eligibility": {
+      "age": {
+        "min": 18,
+        "max": 70
+      },
+      "income": "all",
+      "notes": "Must have savings bank account. Auto-debit consent required."
+    },
+    "tags": [
+      "insurance",
+      "accident",
+      "death",
+      "disability",
+      "all",
+      "bank account"
+    ],
+    "lastUpdated": "2025-04-01"
+  },
+  {
+    "id": "pmjjby",
+    "name": "PMJJBY",
+    "fullName": "Pradhan Mantri Jeevan Jyoti Bima Yojana",
+    "category": "insurance",
+    "benefit": {
+      "amount": 200000,
+      "currency": "INR",
+      "type": "insurance",
+      "frequency": "yearly",
+      "description": "Life insurance cover of ₹2 lakh at ₹436 per year premium"
+    },
+    "eligibility": {
+      "age": {
+        "min": 18,
+        "max": 50
+      },
+      "income": "all",
+      "notes": "Must have savings bank account with auto-debit."
+    },
+    "tags": [
+      "insurance",
+      "life",
+      "death",
+      "family",
+      "bank account",
+      "all"
+    ],
+    "lastUpdated": "2025-04-01"
+  },
+  {
+    "id": "pmmvy",
+    "name": "PMMVY",
+    "fullName": "Pradhan Mantri Matru Vandana Yojana",
+    "category": "women_child",
+    "benefit": {
+      "amount": 5000,
+      "currency": "INR",
+      "type": "cash",
+      "frequency": "one-time",
+      "description": "₹5,000 maternity benefit in 3 installments for first live birth"
+    },
+    "eligibility": {
+      "gender": "female",
+      "age": {
+        "min": 19
+      },
+      "occupation": [
+        "all"
+      ],
+      "notes": "For first live birth. Pregnant and lactating women. Not applicable for govt. employees."
+    },
+    "tags": [
+      "women",
+      "pregnant",
+      "maternity",
+      "child",
+      "mother",
+      "birth",
+      "pregnancy"
+    ],
+    "lastUpdated": "2024-10-01"
+  },
+  {
+    "id": "ignoaps",
+    "name": "IGNOAPS",
+    "fullName": "Indira Gandhi National Old Age Pension Scheme",
+    "category": "pension",
+    "benefit": {
+      "amount": 600,
+      "currency": "INR",
+      "type": "pension",
+      "frequency": "monthly",
+      "description": "Monthly pension of ₹200 (Centre) + state top-up. Total varies ₹500-₹2000+ by state"
+    },
+    "eligibility": {
+      "age": {
+        "min": 60
+      },
+      "income": "BPL",
+      "occupation": [
+        "all"
+      ],
+      "notes": "Must be BPL. Age 60+. For 80+ years, ₹500/month central assistance."
+    },
+    "tags": [
+      "old age",
+      "senior citizen",
+      "pension",
+      "elderly",
+      "BPL",
+      "60 years"
+    ],
+    "lastUpdated": "2024-09-01"
+  },
+  {
+    "id": "ignwps",
+    "name": "IGNWPS - Widow Pension",
+    "fullName": "Indira Gandhi National Widow Pension Scheme",
+    "category": "pension",
+    "benefit": {
+      "amount": 800,
+      "currency": "INR",
+      "type": "pension",
+      "frequency": "monthly",
+      "description": "Monthly pension for widows. Central contribution ₹300 + state top-up"
+    },
+    "eligibility": {
+      "gender": "female",
+      "marital_status": "widow",
+      "age": {
+        "min": 40,
+        "max": 79
+      },
+      "income": "BPL",
+      "notes": "Widows aged 40-79 from BPL families. After 80, shifted to old age pension."
+    },
+    "tags": [
+      "widow",
+      "women",
+      "pension",
+      "BPL",
+      "husband died",
+      "single woman"
+    ],
+    "lastUpdated": "2024-09-01"
+  },
+  {
+    "id": "igndps",
+    "name": "IGNDPS - Disability Pension",
+    "fullName": "Indira Gandhi National Disability Pension Scheme",
+    "category": "pension",
+    "benefit": {
+      "amount": 600,
+      "currency": "INR",
+      "type": "pension",
+      "frequency": "monthly",
+      "description": "Monthly pension for persons with severe disabilities. ₹300 Centre + state top-up"
+    },
+    "eligibility": {
+      "disability": true,
+      "disability_percent": 80,
+      "age": {
+        "min": 18,
+        "max": 79
+      },
+      "income": "BPL",
+      "notes": "80%+ disability. BPL families."
+    },
+    "tags": [
+      "disability",
+      "disabled",
+      "handicapped",
+      "pension",
+      "BPL"
+    ],
+    "lastUpdated": "2024-09-01"
+  },
+  {
+    "id": "sukanya-samriddhi",
+    "name": "Sukanya Samriddhi Yojana",
+    "fullName": "Sukanya Samriddhi Yojana",
+    "category": "savings",
+    "benefit": {
+      "amount": null,
+      "currency": "INR",
+      "type": "savings",
+      "frequency": "yearly",
+      "description": "High-interest (8.2% p.a.) savings account for girl child. Tax-free maturity amount."
+    },
+    "eligibility": {
+      "gender": "female",
+      "age": {
+        "max": 10
+      },
+      "notes": "For girl child below 10 years. Max 2 accounts per family. Min ₹250/year deposit."
+    },
+    "tags": [
+      "girl child",
+      "daughter",
+      "savings",
+      "education",
+      "marriage",
+      "future"
+    ],
+    "lastUpdated": "2025-01-01"
+  },
+  {
+    "id": "pm-fasal-bima",
+    "name": "Pradhan Mantri Fasal Bima Yojana",
+    "fullName": "Pradhan Mantri Fasal Bima Yojana",
+    "category": "agriculture",
+    "benefit": {
+      "amount": null,
+      "currency": "INR",
+      "type": "insurance",
+      "frequency": "seasonal",
+      "description": "Crop insurance: 2% premium for Kharif, 1.5% for Rabi. Government pays rest. Full sum insured on crop damage."
+    },
+    "eligibility": {
+      "occupation": [
+        "farmer"
+      ],
+      "notes": "All farmers growing notified crops. Compulsory for loanee farmers, optional for others."
+    },
+    "tags": [
+      "farmer",
+      "crop",
+      "insurance",
+      "flood",
+      "drought",
+      "agriculture",
+      "kharif",
+      "rabi"
+    ],
+    "lastUpdated": "2025-02-01"
+  },
+  {
+    "id": "nsp-scholarship",
+    "name": "NSP Scholarship",
+    "fullName": "National Scholarship Portal - Pre/Post Matric Scholarships",
+    "category": "education",
+    "benefit": {
+      "amount": 25000,
+      "currency": "INR",
+      "type": "scholarship",
+      "frequency": "yearly",
+      "description": "Scholarships ranging ₹1,000-₹25,000/year for SC/ST/OBC/Minority students"
+    },
+    "eligibility": {
+      "occupation": [
+        "student"
+      ],
+      "social": [
+        "SC",
+        "ST",
+        "OBC",
+        "Minority",
+        "EWS"
+      ],
+      "income": "family income under ₹2.5 lakh/year",
+      "notes": "Based on marks and family income. Pre-matric (class 1-10), Post-matric (class 11-PhD)."
+    },
+    "tags": [
+      "student",
+      "education",
+      "scholarship",
+      "SC",
+      "ST",
+      "OBC",
+      "minority",
+      "school",
+      "college"
+    ],
+    "lastUpdated": "2024-08-01"
+  },
+  {
+    "id": "pm-jan-dhan",
+    "name": "PM Jan Dhan Yojana",
+    "fullName": "Pradhan Mantri Jan Dhan Yojana",
+    "category": "banking",
+    "benefit": {
+      "amount": 10000,
+      "currency": "INR",
+      "type": "banking",
+      "frequency": "one-time",
+      "description": "Zero-balance bank account with ₹2 lakh accident insurance and ₹10,000 overdraft facility"
+    },
+    "eligibility": {
+      "age": {
+        "min": 10
+      },
+      "notes": "Any Indian citizen who doesn't have a bank account. Zero minimum balance required."
+    },
+    "tags": [
+      "bank account",
+      "banking",
+      "zero balance",
+      "unbanked",
+      "DBT",
+      "all"
+    ],
+    "lastUpdated": "2025-01-01"
+  },
+  {
+    "id": "kisan-credit-card",
+    "name": "Kisan Credit Card",
+    "fullName": "Kisan Credit Card Scheme",
+    "category": "agriculture",
+    "benefit": {
+      "amount": 300000,
+      "currency": "INR",
+      "type": "credit",
+      "frequency": "yearly",
+      "description": "Flexible credit up to ₹3 lakh at 4% interest rate for farming needs"
+    },
+    "eligibility": {
+      "occupation": [
+        "farmer"
+      ],
+      "notes": "Farmers, fishermen and animal husbandry workers. Land must be cultivated."
+    },
+    "tags": [
+      "farmer",
+      "credit",
+      "loan",
+      "agriculture",
+      "seeds",
+      "fertiliser",
+      "kisan"
+    ],
+    "lastUpdated": "2025-01-01"
+  },
+  {
+    "id": "pm-svnidhi",
+    "name": "PM SVANidhi",
+    "fullName": "PM Street Vendor's AtmaNirbhar Nidhi",
+    "category": "business",
+    "benefit": {
+      "amount": 50000,
+      "currency": "INR",
+      "type": "loan",
+      "frequency": "progressive",
+      "description": "Working capital loans: ₹10,000 (1st), ₹20,000 (2nd), ₹50,000 (3rd) at subsidized rates"
+    },
+    "eligibility": {
+      "occupation": [
+        "street vendor",
+        "hawker",
+        "vendor"
+      ],
+      "residence": "urban",
+      "notes": "Street vendors with Certificate of Vending or Letter of Recommendation from ULB."
+    },
+    "tags": [
+      "street vendor",
+      "hawker",
+      "urban",
+      "small business",
+      "loan",
+      "thela",
+      "rehri"
+    ],
+    "lastUpdated": "2024-12-01"
+  },
+  {
+    "id": "atal-pension",
+    "name": "Atal Pension Yojana",
+    "fullName": "Atal Pension Yojana",
+    "category": "pension",
+    "benefit": {
+      "amount": 5000,
+      "currency": "INR",
+      "type": "pension",
+      "frequency": "monthly",
+      "description": "Guaranteed pension of ₹1,000-₹5,000/month after age 60, based on contribution"
+    },
+    "eligibility": {
+      "age": {
+        "min": 18,
+        "max": 40
+      },
+      "income": "unorganised sector",
+      "notes": "For workers in unorganised sector. Not for income tax payers or those with EPFO/ESIC."
+    },
+    "tags": [
+      "pension",
+      "retirement",
+      "unorganised sector",
+      "self-employed",
+      "future"
+    ],
+    "lastUpdated": "2025-03-01"
+  },
+  {
+    "id": "pmgkay",
+    "name": "PM Garib Kalyan Anna Yojana",
+    "fullName": "Pradhan Mantri Garib Kalyan Anna Yojana",
+    "category": "food",
+    "benefit": {
+      "amount": null,
+      "currency": "INR",
+      "type": "food",
+      "frequency": "monthly",
+      "description": "5 kg free food grains (rice/wheat) per person per month under NFSA"
+    },
+    "eligibility": {
+      "income": "NFSA eligible families",
+      "notes": "Must have ration card. Priority and Antyodaya households under NFSA 2013."
+    },
+    "tags": [
+      "ration",
+      "food",
+      "rice",
+      "wheat",
+      "free",
+      "BPL",
+      "AAY",
+      "grain"
+    ],
+    "lastUpdated": "2025-02-01"
+  },
+  {
+    "id": "bbbp",
+    "name": "Beti Bachao Beti Padhao",
+    "fullName": "Beti Bachao Beti Padhao Scheme",
+    "category": "women_child",
+    "benefit": {
+      "amount": null,
+      "currency": "INR",
+      "type": "education",
+      "frequency": "ongoing",
+      "description": "Education and welfare benefits for girl children including scholarships, free education and health services"
+    },
+    "eligibility": {
+      "gender": "female",
+      "notes": "Girl child beneficiaries. Focus districts across India."
+    },
+    "tags": [
+      "girl child",
+      "daughter",
+      "education",
+      "women",
+      "school",
+      "healthcare"
+    ],
+    "lastUpdated": "2024-10-01"
+  }
+]

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Mic, ChevronDown } from 'lucide-react';
+import { ArrowRight, Mic, ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import SplashScreen from '../components/SplashScreen';
 
 const LANGUAGE_CYCLE = [
   { text: 'योजना-सेतु', lang: 'Hindi',   sub: 'आपकी आवाज़, आपके अधिकार' },
@@ -21,12 +22,12 @@ const STATS = [
 ];
 
 const FEATURES = [
-  { icon: '🎤', title: 'Voice First',         desc: 'Speak naturally in your dialect — no typing, no forms, no literacy barrier',                              color: 'from-red-500/10 to-red-500/5',     border: 'border-red-500/15' },
+  { icon: '🎤', title: 'Voice First',         desc: 'Speak naturally in your dialect. No typing, no forms, no literacy barrier.',                            color: 'from-red-500/10 to-red-500/5',     border: 'border-red-500/15' },
   { icon: '🧠', title: 'AI Matching',         desc: 'Nova Pro AI understands your full situation and finds every scheme you qualify for',                       color: 'from-purple-500/10 to-purple-500/5', border: 'border-purple-500/15' },
-  { icon: '🌐', title: 'True Multilingual',   desc: 'Hindi, Kannada, Tamil, Telugu, English — native language understanding, not just translation',            color: 'from-blue-500/10 to-blue-500/5',   border: 'border-blue-500/15' },
+  { icon: '🌐', title: 'True Multilingual',   desc: 'Hindi, Kannada, Tamil, Telugu, English. Native language understanding, not just translation.',          color: 'from-blue-500/10 to-blue-500/5',   border: 'border-blue-500/15' },
   { icon: '🔊', title: 'Audio Responses',     desc: 'Hears your situation in your language, replies in your language with Polly TTS',                         color: 'from-cyan-500/10 to-cyan-500/5',   border: 'border-cyan-500/15' },
-  { icon: '📋', title: 'End-to-End Guidance', desc: 'Not just discovery — exact documents needed, how to apply, where to go',                                  color: 'from-amber-500/10 to-amber-500/5', border: 'border-amber-500/15' },
-  { icon: '⚡', title: 'Instant & Free',      desc: '24/7 available, no agents, no queues, no fees — your rights, directly',                                   color: 'from-bharat-green/10 to-bharat-green/5', border: 'border-bharat-green/15' },
+  { icon: '📋', title: 'End-to-End Guidance', desc: 'Not just discovery. Exact documents needed, how to apply, where to go.',                                  color: 'from-amber-500/10 to-amber-500/5', border: 'border-amber-500/15' },
+  { icon: '⚡', title: 'Instant Access',       desc: '24/7 available, no agents, no queues. Your rights, directly in your hands.',                             color: 'from-bharat-green/10 to-bharat-green/5', border: 'border-bharat-green/15' },
 ];
 
 const STEPS = [
@@ -81,6 +82,97 @@ export default function LandingPage() {
   const [langIdx, setLangIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [musicOn, setMusicOn] = useState(false);
+  const bgMusicRef = useRef(null);
+  const autoStartHandlerRef = useRef(null);
+
+  const fadeInAudio = (audio) => {
+    audio.currentTime = 8;
+    audio.play().catch(() => {});
+    const fadeIn = setInterval(() => {
+      if (audio.volume >= 0.16) { audio.volume = 0.18; clearInterval(fadeIn); }
+      else audio.volume = Math.min(audio.volume + 0.02, 0.18);
+    }, 80);
+    setMusicOn(true);
+  };
+
+  // Auto-start music on page load
+  useEffect(() => {
+    const audio = new Audio('/bg-music.mp3');
+    audio.loop = true;
+    audio.volume = 0;
+    bgMusicRef.current = audio;
+    audio.currentTime = 8;
+
+    const unmute = () => {
+      audio.muted = false;
+      fadeInAudio(audio);
+      autoStartHandlerRef.current = null;
+    };
+
+    // Try direct unmuted autoplay first
+    audio.play().then(() => {
+      const fadeIn = setInterval(() => {
+        if (audio.volume >= 0.16) { audio.volume = 0.18; clearInterval(fadeIn); }
+        else audio.volume = Math.min(audio.volume + 0.02, 0.18);
+      }, 80);
+      setMusicOn(true);
+    }).catch(() => {
+      // Direct blocked — play muted (always allowed), unmute on first interaction
+      audio.muted = true;
+      audio.play().catch(() => {});
+      autoStartHandlerRef.current = unmute;
+      document.addEventListener('click', unmute, { once: true });
+      document.addEventListener('touchstart', unmute, { once: true });
+    });
+
+    return () => {
+      if (autoStartHandlerRef.current) {
+        document.removeEventListener('click', autoStartHandlerRef.current);
+        document.removeEventListener('touchstart', autoStartHandlerRef.current);
+      }
+      // Smooth fade-out on any navigation (browser back, link, etc.)
+      const fadeOut = setInterval(() => {
+        if (audio.volume <= 0.02) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
+        else audio.volume = Math.max(audio.volume - 0.06, 0);
+      }, 25);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleMusic = () => {
+    // Clear pending auto-start listener if user manually toggles
+    if (autoStartHandlerRef.current) {
+      document.removeEventListener('click', autoStartHandlerRef.current);
+      document.removeEventListener('touchstart', autoStartHandlerRef.current);
+      autoStartHandlerRef.current = null;
+    }
+    const audio = bgMusicRef.current;
+    if (!audio) return;
+    if (!musicOn) {
+      fadeInAudio(audio);
+    } else {
+      const fadeOut = setInterval(() => {
+        if (audio.volume <= 0.04) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
+        else audio.volume = Math.max(audio.volume - 0.04, 0);
+      }, 80);
+      setMusicOn(false);
+    }
+  };
+
+  const handleNavigate = () => {
+    // Fade out music
+    const audio = bgMusicRef.current;
+    if (audio && !audio.paused) {
+      const fadeOut = setInterval(() => {
+        if (audio.volume <= 0.04) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
+        else audio.volume = Math.max(audio.volume - 0.06, 0);
+      }, 40);
+    }
+    setIsLeaving(true);
+    setTimeout(() => router.push('/chat'), 320);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -99,7 +191,21 @@ export default function LandingPage() {
   const current = LANGUAGE_CYCLE[langIdx];
 
   return (
-    <div className="min-h-screen bg-bharat-bg text-white overflow-x-hidden">
+    <>
+    <AnimatePresence>
+      {showSplash && <SplashScreen key="splash" onComplete={() => setShowSplash(false)} />}
+    </AnimatePresence>
+    <motion.div
+      className="min-h-screen bg-bharat-bg text-white overflow-x-hidden"
+      animate={{
+        opacity: isLeaving ? 0 : 1,
+        scale: showSplash ? 0.984 : 1,
+      }}
+      transition={{
+        opacity: { duration: 0.25, ease: 'easeInOut' },
+        scale: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+      }}
+    >
 
       {/* ── Navbar ── */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
@@ -107,20 +213,24 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-bharat-green/30 to-emerald-600/20 border border-bharat-green/25 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-bharat-green/30 to-emerald-600/20 border border-bharat-green/25 flex items-center justify-center text-lg">
               🏛️
             </div>
             <span className="font-bold text-white text-lg tracking-tight">Yojna-Setu</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-xs text-gray-600">AI for Bharat Hackathon 2026</span>
-            <motion.button
-              onClick={() => router.push('/chat')}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-              className="flex items-center gap-2 bg-bharat-green hover:bg-bharat-darkgreen text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors shadow-glow-sm"
+<motion.button
+              onClick={toggleMusic}
+              whileTap={{ scale: 0.9 }}
+              title={musicOn ? 'Mute music' : 'Play background music'}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 ${
+                musicOn
+                  ? 'text-bharat-green border-bharat-green/30 bg-bharat-green/8'
+                  : 'text-gray-600 border-white/[0.07] hover:text-gray-300'
+              }`}
             >
-              Open App <ArrowRight size={13} />
+              {musicOn ? <Volume2 size={12} /> : <VolumeX size={12} />}
+              <span className="hidden sm:inline">{musicOn ? 'Music on' : 'Music off'}</span>
             </motion.button>
           </div>
         </div>
@@ -137,15 +247,18 @@ export default function LandingPage() {
           }} />
         </div>
 
+
         {/* Badge */}
         <motion.div
-          className="relative z-10 mb-8 inline-flex items-center gap-2 glass border border-bharat-green/20 rounded-full px-5 py-2"
+          className="relative z-10 mb-8 inline-flex items-center gap-2 glass border border-white/10 rounded-full px-5 py-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: [0.25, 1, 0.5, 1] }}
         >
-          <span className="w-2 h-2 rounded-full bg-bharat-green animate-pulse shadow-glow-sm" />
-          <span className="text-bharat-green text-xs font-semibold tracking-wide">AI for Bharat Hackathon 2026 · PS03</span>
+          <span className="w-2 h-2 rounded-full bg-bharat-saffron animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-white/80" />
+          <span className="w-2 h-2 rounded-full bg-bharat-flaggreen animate-pulse" />
+          <span className="text-white/80 text-xs font-semibold tracking-wide">Voice-first · Multilingual · 5 Languages</span>
         </motion.div>
 
         {/* Animated title */}
@@ -180,9 +293,9 @@ export default function LandingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.28, ease: [0.25, 1, 0.5, 1] }}
         >
-          Voice-first AI assistant that helps{' '}
-          <span className="text-white font-semibold">350 million rural Indians</span>{' '}
-          discover government welfare schemes — in their native language, instantly, for free.
+          Voice-first AI that helps{' '}
+          <span className="text-white font-semibold">every Indian citizen</span>{' '}
+          discover government welfare schemes in their native language, instantly.
         </motion.p>
 
         {/* CTA Buttons */}
@@ -193,7 +306,7 @@ export default function LandingPage() {
           transition={{ duration: 0.55, delay: 0.4, ease: [0.25, 1, 0.5, 1] }}
         >
           <motion.button
-            onClick={() => router.push('/chat')}
+            onClick={handleNavigate}
             whileTap={{ scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             className="group relative flex items-center gap-3 bg-bharat-green hover:bg-bharat-darkgreen text-white font-bold px-9 py-4 rounded-2xl text-lg transition-colors shadow-glow-green overflow-hidden"
@@ -201,7 +314,7 @@ export default function LandingPage() {
             {/* Shimmer on hover */}
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             <Mic size={20} />
-            Start Speaking Free
+            Start Speaking
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </motion.button>
           <motion.button
@@ -249,7 +362,7 @@ export default function LandingPage() {
             {[
               { icon: '🏛️', num: '₹2.7L Cr', desc: 'Government allocates annually for welfare schemes', color: 'from-bharat-green/12 to-bharat-green/4', border: 'border-bharat-green/15' },
               { icon: '📉', num: '40–60%',    desc: 'Actually reaches beneficiaries. Rest is unclaimed.', color: 'from-red-500/12 to-red-500/4',         border: 'border-red-500/20' },
-              { icon: '❓', num: 'Why?',      desc: "Language barriers, digital illiteracy, no awareness — people don't know they qualify", color: 'from-amber-500/12 to-amber-500/4', border: 'border-amber-500/20' },
+              { icon: '❓', num: 'Why?',      desc: "Language barriers, digital illiteracy, no awareness. People don't know they qualify.", color: 'from-amber-500/12 to-amber-500/4', border: 'border-amber-500/20' },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 0.12} y={32}>
                 <motion.div
@@ -385,23 +498,22 @@ export default function LandingPage() {
         <FadeIn y={32} className="relative z-10 max-w-2xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-5 tracking-tight">
             Your rights are<br />
-            <span className="hero-gradient-text">waiting for you.</span>
+            <span className="hero-gradient-text text-shine">waiting for you.</span>
           </h2>
           <p className="text-gray-500 text-lg sm:text-xl mb-12">
             Speak in your language. Get what you deserve.
           </p>
           <motion.button
-            onClick={() => router.push('/chat')}
+            onClick={handleNavigate}
             whileTap={{ scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             className="group relative inline-flex items-center gap-3 bg-bharat-green hover:bg-bharat-darkgreen text-white font-bold px-12 py-5 rounded-2xl text-xl transition-colors shadow-glow-green overflow-hidden"
           >
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             <Mic size={24} />
-            Start Now — It&apos;s Free
+            Start Now
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
           </motion.button>
-          <p className="text-gray-700 text-sm mt-5">No sign-up · No fees · Works in 5 languages</p>
         </FadeIn>
       </section>
 
@@ -413,12 +525,13 @@ export default function LandingPage() {
             <span className="text-gray-600 text-sm">Yojna-Setu · Team NON-NEGOTIATORS</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-700">
-            <span>AI for Bharat Hackathon 2026</span>
+            <span>Multilingual · Voice-first</span>
             <span className="w-1 h-1 rounded-full bg-gray-700" />
-            <span>Powered by Nova Pro + AWS</span>
+            <span>5 Indian Languages</span>
           </div>
         </div>
       </footer>
-    </div>
+    </motion.div>
+    </>
   );
 }

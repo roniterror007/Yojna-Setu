@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { ExternalLink, CheckCircle, FileText } from 'lucide-react';
+import { ExternalLink, CheckCircle, FileText, Clock } from 'lucide-react';
 
 const CATEGORY_COLORS = {
   agriculture: 'text-green-400 bg-green-400/10 border-green-400/20',
@@ -124,20 +124,28 @@ export default function SchemeCard({ scheme, language = 'hi', index = 0 }) {
         </div>
       )}
 
-      {/* Link */}
-      {scheme.website && (
-        <motion.a
-          href={scheme.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-bharat-green text-xs mt-2"
-          whileHover={{ x: 2, color: '#5a9e28' }}
-          transition={{ duration: 0.15 }}
-        >
-          <ExternalLink size={11} />
-          <span>Apply / Learn more</span>
-        </motion.a>
-      )}
+      {/* Footer: link + last updated */}
+      <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
+        {scheme.website && (
+          <motion.a
+            href={scheme.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-bharat-green text-xs"
+            whileHover={{ x: 2, color: '#5a9e28' }}
+            transition={{ duration: 0.15 }}
+          >
+            <ExternalLink size={11} />
+            <span>Apply / Learn more</span>
+          </motion.a>
+        )}
+        {scheme.lastUpdated && (
+          <span className="inline-flex items-center gap-1 text-gray-700 text-xs ml-auto">
+            <Clock size={9} />
+            Updated {new Date(scheme.lastUpdated).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+          </span>
+        )}
+      </div>
     </motion.div>
   );
 }

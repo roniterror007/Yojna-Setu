@@ -17,6 +17,9 @@ module.exports = {
           border:    "#1a2540",
           glow:      "#6FCF60",
           muted:     "#1e2d45",
+          saffron:   "#FF9933",
+          flaggreen: "#138808",
+          chakra:    "#000080",
         },
       },
       backgroundImage: {

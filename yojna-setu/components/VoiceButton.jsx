@@ -5,6 +5,39 @@ import { Mic } from 'lucide-react';
 
 const LANG_MAP = { hi: 'hi-IN', kn: 'kn-IN', ta: 'ta-IN', te: 'te-IN', en: 'en-IN' };
 
+const STATUS_STRINGS = {
+  hi: {
+    tap:        'बोलने के लिए टैप करें',
+    listening:  '🔴 सुन रहा हूँ… रोकने के लिए टैप करें',
+    processing: '✨ प्रोसेस हो रहा है…',
+    busy:       'प्रोसेस हो रहा है...',
+  },
+  kn: {
+    tap:        'ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
+    listening:  '🔴 ಕೇಳುತ್ತಿದ್ದೇನೆ… ನಿಲ್ಲಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
+    processing: '✨ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ…',
+    busy:       'ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ...',
+  },
+  ta: {
+    tap:        'பேச தட்டவும்',
+    listening:  '🔴 கேட்கிறேன்… நிறுத்த தட்டவும்',
+    processing: '✨ செயலாக்கப்படுகிறது…',
+    busy:       'செயலாக்கப்படுகிறது...',
+  },
+  te: {
+    tap:        'మాట్లాడటానికి నొక్కండి',
+    listening:  '🔴 వింటున్నాను… ఆపడానికి నొక్కండి',
+    processing: '✨ ప్రాసెస్ అవుతోంది…',
+    busy:       'ప్రాసెస్ అవుతోంది...',
+  },
+  en: {
+    tap:        'Tap to speak',
+    listening:  '🔴 Listening… tap to stop',
+    processing: '✨ Processing…',
+    busy:       'Processing...',
+  },
+};
+
 // Waveform bar configs — different delays/heights per bar for organic look
 const BARS = [
   { delay: 0,    minH: 20, maxH: 80 },
@@ -45,7 +78,8 @@ function RippleRing({ delay, size, color }) {
   );
 }
 
-export default function VoiceButton({ language, onTranscript, onListeningChange, disabled, resetKey }) {
+export default function VoiceButton({ language = 'hi', onTranscript, onListeningChange, disabled, resetKey }) {
+  const s = STATUS_STRINGS[language] || STATUS_STRINGS.en;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [supported, setSupported] = useState(false);
@@ -55,6 +89,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
   const interimRef = useRef('');
   const cbRef = useRef({ onTranscript, onListeningChange });
   const langRef = useRef(language);
+  const silenceTimerRef = useRef(null);
 
   useEffect(() => { cbRef.current = { onTranscript, onListeningChange }; }, [onTranscript, onListeningChange]);
   useEffect(() => { langRef.current = language; }, [language]);
@@ -67,6 +102,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
 
   useEffect(() => {
     if (session.current.active) {
+      clearTimeout(silenceTimerRef.current);
       session.current.active = false;
       try { session.current.recognition?.abort(); } catch (_) {}
       session.current.accumulated = '';
@@ -115,6 +151,20 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
       }
       interimRef.current = interim;
       setTranscript((session.current.accumulated + interim).trim());
+      // Auto-stop after 3.5s of silence
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        if (session.current.active) {
+          session.current.active = false;
+          setIsListening(false);
+          cbRef.current.onListeningChange?.(false);
+          if (session.current.ended) {
+            finalize();
+          } else {
+            try { session.current.recognition?.stop(); } catch (_) {}
+          }
+        }
+      }, 3500);
     };
 
     r.onerror = (e) => {
@@ -151,6 +201,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
   const handleClick = () => {
     if (disabled) return;
     if (session.current.active) {
+      clearTimeout(silenceTimerRef.current);
       session.current.active = false;
       setIsListening(false);
       cbRef.current.onListeningChange?.(false);
@@ -300,7 +351,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
           >
-            🔴 Listening… tap to stop
+            {s.listening}
           </motion.p>
         ) : isProcessing ? (
           <motion.p
@@ -311,7 +362,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.8, repeat: Infinity, repeatType: 'reverse' }}
           >
-            ✨ Processing…
+            {s.processing}
           </motion.p>
         ) : (
           <motion.p
@@ -322,7 +373,7 @@ export default function VoiceButton({ language, onTranscript, onListeningChange,
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
           >
-            {disabled ? 'Processing...' : 'Tap to speak'}
+            {disabled ? s.busy : s.tap}
           </motion.p>
         )}
       </AnimatePresence>

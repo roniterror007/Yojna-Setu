@@ -12,6 +12,10 @@
   --green:        #6FCF60;
   --green-dark:   #4CAF50;
   --green-glow:   rgba(111, 207, 96, 0.25);
+  /* Indian flag tricolor */
+  --saffron:      #FF9933;
+  --flag-green:   #138808;
+  --chakra-blue:  #000080;
 }
 
 * {
@@ -121,7 +125,7 @@ html, body {
 }
 
 .text-shine {
-  background: linear-gradient(90deg, #6FCF60 0%, #A5D6A7 40%, #6FCF60 80%);
+  background: linear-gradient(90deg, #FF9933 0%, #ffffff 33%, #138808 66%, #FF9933 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -129,9 +133,14 @@ html, body {
   animation: shine 3s linear infinite;
 }
 
-/* ── Gradient hero text ── */
+/* ── Tricolor stripe — thin decorative bar ── */
+.tricolor-bar {
+  background: linear-gradient(90deg, #FF9933 0%, #FF9933 33.3%, #ffffff 33.3%, #ffffff 66.6%, #138808 66.6%, #138808 100%);
+}
+
+/* ── Gradient hero text — Indian flag tricolor ── */
 .hero-gradient-text {
-  background: linear-gradient(135deg, #6FCF60 0%, #a8e063 30%, #ffffff 65%, #e2f5dc 100%);
+  background: linear-gradient(100deg, #FF9933 0%, #ffb347 20%, #ffffff 42%, #ffffff 58%, #4CAF50 80%, #138808 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -209,6 +218,18 @@ html, body {
 }
 .blob-blue   { display: none; }
 .blob-orange { display: none; }
+
+/* ── Text selection glow ── */
+::selection {
+  background: rgba(111, 207, 96, 0.28);
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(111, 207, 96, 0.6);
+}
+::-moz-selection {
+  background: rgba(111, 207, 96, 0.28);
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(111, 207, 96, 0.6);
+}
 
 /* ── Smooth scroll ── */
 html { scroll-behavior: smooth; }
