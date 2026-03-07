@@ -1,24 +1,29 @@
-import AnthropicBedrock from '@anthropic-ai/bedrock-sdk';
+import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { getSchemeSummaryForAI } from '../../../lib/schemes';
 
-// Claude model on AWS Bedrock — billed to your AWS credits
-// claude-3-5-haiku is fast + cheap; switch to claude-3-5-sonnet for higher quality
-const BEDROCK_MODEL = 'anthropic.claude-3-5-haiku-20241022-v1:0';
+// Amazon Nova Pro — first-party AWS model, no Marketplace subscription required
+const BEDROCK_MODEL = 'amazon.nova-pro-v1:0';
 
 const getClient = () => {
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     return null;
   }
-  return new AnthropicBedrock({
-    awsAccessKey: process.env.AWS_ACCESS_KEY_ID,
-    awsSecretKey: process.env.AWS_SECRET_ACCESS_KEY,
-    awsRegion: process.env.AWS_REGION || 'us-east-1',
+  return new BedrockRuntimeClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
   });
 };
 
-const SYSTEM_PROMPT = (schemesJson) => `You are Yojna-Setu (योजना-सेतु), a caring and helpful AI assistant that helps rural Indians discover government welfare schemes they are eligible for.
+const LANGUAGE_LABELS = { hi: 'Hindi (हिंदी)', kn: 'Kannada (ಕನ್ನಡ)', ta: 'Tamil (தமிழ்)', te: 'Telugu (తెలుగు)', en: 'English' };
 
-You speak in whichever language the user speaks to you - Hindi (हिंदी), Kannada (ಕನ್ನಡ), Tamil (தமிழ்), Telugu (తెలుగు), or English. Always mirror the user's language.
+const SYSTEM_PROMPT = (schemesJson, language) => {
+  const langLabel = LANGUAGE_LABELS[language] || 'Hindi (हिंदी)';
+  return `You are Yojna-Setu (योजना-सेतु), a caring and helpful AI assistant that helps rural Indians discover government welfare schemes they are eligible for.
+
+LANGUAGE INSTRUCTION: The user has selected ${langLabel} as their interface language. You MUST respond ONLY in ${langLabel}. Do not switch to any other language regardless of what the user types.
 
 GOVERNMENT SCHEMES DATABASE:
 ${schemesJson}
@@ -30,9 +35,18 @@ YOUR TASK:
 4. Explain the benefits clearly in simple language they can understand
 5. Tell them exactly how to apply (documents needed, where to go)
 
+MESSAGE FORMAT RULES (critical — the message field must follow this structure):
+1. Start with ONE short warm sentence acknowledging the user's situation.
+2. For each matched scheme, write it as a bullet like this:
+   • **Scheme Name** — benefit amount/description. How to apply in one sentence.
+3. End with ONE short encouraging sentence.
+4. Use bullet points (•) for ALL scheme listings — NEVER write them as a long paragraph.
+5. Keep each bullet to 2 sentences max. No walls of text.
+6. Use **bold** (double asterisks) only for scheme names.
+
 RESPONSE FORMAT (ALWAYS respond with valid JSON):
 {
-  "message": "Your warm, helpful response in the USER's language. Mention matched schemes by name with key benefits. Use simple words, no jargon.",
+  "message": "One warm sentence.\\n\\n• **Scheme 1** — benefit. How to apply.\\n• **Scheme 2** — benefit. How to apply.\\n\\nOne closing sentence.",
   "detected_language": "hi|kn|ta|te|en",
   "matched_scheme_ids": ["scheme-id-1", "scheme-id-2"],
   "extracted_profile": {
@@ -58,12 +72,16 @@ RESPONSE FORMAT (ALWAYS respond with valid JSON):
 IMPORTANT RULES:
 - Always be warm, respectful and encouraging
 - Use simple words, avoid bureaucratic language
-- If user speaks Hindi, respond in Hindi. If Kannada, respond in Kannada, etc.
+- ALWAYS respond in ${langLabel} — never switch languages
+- ALWAYS use bullet points (•) for scheme listings — NEVER a continuous paragraph
 - Match schemes accurately - don't suggest schemes they clearly don't qualify for
-- Mention the benefit amount clearly (e.g., "आपको ₹6,000 मिलेंगे")
+- Mention the benefit amount clearly in each bullet (e.g., ₹6,000/year)
 - If unsure about eligibility, still mention the scheme but note the condition
 - Always end with an encouragement to apply
-- For first message with very little info, ask key questions: state, occupation, income level`;
+- For first message with very little info, ask key questions: state, occupation, income level
+- Do NOT suggest Atal Pension Yojana or other retirement pension schemes to students or anyone under 25 years of age
+- Do NOT suggest MGNREGA to urban residents or salaried employees`;
+};
 
 export async function POST(request) {
   try {
@@ -84,16 +102,24 @@ export async function POST(request) {
     }
 
     const schemesJson = JSON.stringify(getSchemeSummaryForAI(), null, 2);
-    const systemPrompt = SYSTEM_PROMPT(schemesJson);
+    const systemPrompt = SYSTEM_PROMPT(schemesJson, language);
 
-    const response = await client.messages.create({
-      model: BEDROCK_MODEL,
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: messages,
+    // Nova Pro uses the Bedrock Converse API.
+    // Each message's content must be an array of content blocks: [{ text: "..." }]
+    const converseMessages = messages.map((msg) => ({
+      role: msg.role,
+      content: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
+    }));
+
+    const command = new ConverseCommand({
+      modelId: BEDROCK_MODEL,
+      system: [{ text: systemPrompt }],
+      messages: converseMessages,
+      inferenceConfig: { maxTokens: 1500 },
     });
 
-    const rawContent = response.content[0].text;
+    const response = await client.send(command);
+    const rawContent = response.output.message.content[0].text;
 
     let parsed;
     try {
