@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, RefreshCw, ArrowLeft, Mic, Volume2, VolumeX, ChevronDown, ChevronUp, Sparkles, Info, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, RefreshCw, ArrowLeft, Volume2, VolumeX, Sparkles, Info, MessageSquare } from 'lucide-react';
 import LanguageSelector from '../../components/LanguageSelector';
 import VoiceButton from '../../components/VoiceButton';
 import SchemeCard from '../../components/SchemeCard';
@@ -52,10 +53,9 @@ const UI_STRINGS = {
   },
 };
 
-// Simple markdown bold renderer
-function renderMessage(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
+// Render inline bold (**text**) within a single text segment
+function renderInline(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return <strong key={i} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
     }
@@ -63,36 +63,109 @@ function renderMessage(text) {
   });
 }
 
+// Full markdown renderer: handles bullets, numbered lists, blank lines, bold
+function renderMessage(text) {
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Blank line → spacing
+    if (!trimmed) {
+      elements.push(<div key={i} className="h-2" />);
+      i++;
+      continue;
+    }
+
+    // Bullet point: lines starting with •, -, or *
+    if (/^[•\-\*]\s/.test(trimmed)) {
+      const content = trimmed.replace(/^[•\-\*]\s/, '');
+      elements.push(
+        <div key={i} className="flex items-start gap-2 my-0.5">
+          <span className="text-bharat-green mt-0.5 flex-shrink-0 text-sm leading-none">•</span>
+          <span className="text-gray-200 text-sm leading-relaxed">{renderInline(content)}</span>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Numbered list: 1. 2. etc.
+    const numMatch = trimmed.match(/^(\d+)\.\s(.+)/);
+    if (numMatch) {
+      elements.push(
+        <div key={i} className="flex items-start gap-2 my-0.5">
+          <span className="text-bharat-green/70 text-xs font-mono flex-shrink-0 w-4 mt-0.5">{numMatch[1]}.</span>
+          <span className="text-gray-200 text-sm leading-relaxed">{renderInline(numMatch[2])}</span>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Regular paragraph line
+    elements.push(
+      <p key={i} className="text-gray-200 text-sm leading-relaxed">
+        {renderInline(trimmed)}
+      </p>
+    );
+    i++;
+  }
+
+  return elements;
+}
+
 function MessageBubble({ message, onSpeak, isSpeaking }) {
   const isUser = message.role === 'user';
-  return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end group`}>
-      {/* Avatar */}
-      <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1
-        ${isUser ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' : 'bg-bharat-green/20 border border-bharat-green/30 text-bharat-green'}`}>
-        {isUser ? '👤' : '🏛️'}
-      </div>
 
-      <div className={`max-w-[78%] flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
+  return (
+    <motion.div
+      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end group`}
+      initial={{ opacity: 0, y: 20, scale: 0.96, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, y: 0,  scale: 1,    filter: 'blur(0px)' }}
+      transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+    >
+      {/* Avatar — pops in slightly after the bubble */}
+      <motion.div
+        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm mb-1 shadow-lg
           ${isUser
-            ? 'bg-blue-600/20 border border-blue-500/20 text-gray-100 rounded-br-sm'
-            : 'bg-bharat-card border border-bharat-border text-gray-200 rounded-bl-sm'
+            ? 'bg-gradient-to-br from-blue-500/30 to-indigo-600/30 border border-blue-400/25'
+            : 'bg-gradient-to-br from-bharat-green/25 to-emerald-600/20 border border-bharat-green/25'
+          }`}
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: 0.12, ease: [0.34, 1.56, 0.64, 1] }}
+      >
+        {isUser ? '👤' : '🏛️'}
+      </motion.div>
+
+      <div className={`max-w-[78%] flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg
+          ${isUser
+            ? 'bg-gradient-to-br from-blue-600/25 to-indigo-700/20 border border-blue-500/20 text-gray-100 rounded-br-md'
+            : 'glass-card text-gray-200 rounded-bl-md'
           }`}>
-          <p className="whitespace-pre-wrap">
-            {message.displayText ? renderMessage(message.displayText) : message.content}
-          </p>
+          {isUser ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {renderMessage(message.displayText || message.content)}
+            </div>
+          )}
         </div>
 
         {/* Actions row */}
-        <div className={`flex items-center gap-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity ${isUser ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isUser ? 'flex-row-reverse' : ''}`}>
           {!isUser && onSpeak && message.displayText && (
             <button
               onClick={() => onSpeak(message.displayText, message.language)}
-              className={`flex items-center gap-1 text-xs transition-colors
-                ${isSpeaking ? 'text-bharat-green' : 'text-gray-600 hover:text-bharat-green'}`}
+              className={`flex items-center gap-1 text-xs transition-colors rounded-full px-2 py-0.5
+                ${isSpeaking ? 'text-bharat-green bg-bharat-green/10' : 'text-gray-600 hover:text-bharat-green'}`}
             >
-              {isSpeaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
+              {isSpeaking ? <VolumeX size={10} /> : <Volume2 size={10} />}
               <span>{isSpeaking ? 'Stop' : 'Listen'}</span>
             </button>
           )}
@@ -101,23 +174,54 @@ function MessageBubble({ message, onSpeak, isSpeaking }) {
           </span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 function TypingIndicator() {
   return (
-    <div className="flex gap-3 items-end">
-      <div className="w-7 h-7 rounded-full bg-bharat-green/20 border border-bharat-green/30 flex items-center justify-center text-xs">🏛️</div>
-      <div className="bg-bharat-card border border-bharat-border rounded-2xl rounded-bl-sm px-4 py-3">
-        <div className="flex items-center gap-1.5">
+    <motion.div
+      className="flex gap-3 items-end"
+      initial={{ opacity: 0, y: 16, scale: 0.95, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, y: 0,  scale: 1,    filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: 8, scale: 0.95, filter: 'blur(4px)', transition: { duration: 0.2 } }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+    >
+      {/* Avatar */}
+      <motion.div
+        className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-bharat-green/25 to-emerald-600/20 border border-bharat-green/25 flex items-center justify-center text-sm shadow-lg"
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+      >
+        🏛️
+      </motion.div>
+
+      {/* Bubble */}
+      <div className="glass-card rounded-2xl rounded-bl-md px-5 py-4">
+        <div className="flex items-center gap-2">
           {[0, 1, 2].map(i => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-bharat-green/60"
-              style={{ animation: 'pulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }} />
+            <motion.span
+              key={i}
+              className="block rounded-full bg-bharat-green"
+              style={{ width: 8, height: 8 }}
+              animate={{
+                y:       [0, -9, 0],
+                scale:   [1, 1.25, 1],
+                opacity: [0.4, 1, 0.4],
+              }}
+              transition={{
+                duration:   0.7,
+                repeat:     Infinity,
+                delay:      i * 0.18,
+                ease:       'easeInOut',
+                repeatType: 'loop',
+              }}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -129,14 +233,15 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [matchedSchemes, setMatchedSchemes] = useState([]);
-  const [showSchemes, setShowSchemes] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'schemes'
+  const [activeTab, setActiveTab] = useState('chat');
+  const [voiceResetKey, setVoiceResetKey] = useState(0);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const audioRef = useRef(null);
   const strings = UI_STRINGS[language] || UI_STRINGS.en;
 
   useEffect(() => {
@@ -159,6 +264,8 @@ export default function ChatPage() {
   const speakText = useCallback(async (text, lang) => {
     if (isSpeaking) {
       window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
+      audioRef.current = null;
       setIsSpeaking(false);
       return;
     }
@@ -173,8 +280,9 @@ export default function ChatPage() {
       if (data.source === 'polly' && data.audioData) {
         const audioBlob = new Blob([Uint8Array.from(atob(data.audioData), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
         const audio = new Audio(URL.createObjectURL(audioBlob));
+        audioRef.current = audio;
         setIsSpeaking(true);
-        audio.onended = () => setIsSpeaking(false);
+        audio.onended = () => { setIsSpeaking(false); audioRef.current = null; };
         audio.play();
       } else if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -222,8 +330,7 @@ export default function ChatPage() {
       if (!result.success) throw new Error(result.error || 'Failed');
 
       const aiData = result.data;
-      const detectedLang = aiData.detected_language || effectiveLang;
-      if (['hi', 'kn', 'ta', 'te', 'en'].includes(detectedLang)) setLanguage(detectedLang);
+      const detectedLang = language;
 
       const assistantMsg = {
         id: Date.now() + 1,
@@ -239,7 +346,6 @@ export default function ChatPage() {
       if (aiData.matched_scheme_ids?.length > 0) {
         const schemes = aiData.matched_scheme_ids.map(id => allSchemes.find(s => s.id === id)).filter(Boolean);
         setMatchedSchemes(schemes);
-        setShowSchemes(true);
         setActiveTab('schemes');
         setTimeout(() => setActiveTab('chat'), 1500);
       }
@@ -248,7 +354,7 @@ export default function ChatPage() {
     } catch (error) {
       setMessages(prev => [...prev, {
         id: Date.now() + 1, role: 'assistant',
-        content: error.message?.includes('API key') ? '⚠️ Please add ANTHROPIC_API_KEY to .env.local' : 'Sorry, something went wrong. Please try again.',
+        content: 'Sorry, something went wrong. Please try again.',
         displayText: 'Sorry, something went wrong. Please try again.',
         language: effectiveLang, timestamp: Date.now(),
       }]);
@@ -264,47 +370,57 @@ export default function ChatPage() {
     setHasStarted(false);
     setInputText('');
     window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
+    audioRef.current = null;
     setIsSpeaking(false);
     setActiveTab('chat');
+    setVoiceResetKey(k => k + 1);
   };
 
   return (
-    <div className="h-screen bg-bharat-bg flex flex-col overflow-hidden">
+    <div className="h-screen mesh-subtle flex flex-col overflow-hidden page-enter">
 
       {/* ── Header ── */}
-      <header className="flex-shrink-0 bg-bharat-bg/95 backdrop-blur-xl border-b border-bharat-border px-4 py-3">
+      <header className="flex-shrink-0 glass-frost border-b border-white/[0.06] px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
+            <motion.button
               onClick={() => router.push('/')}
-              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors text-sm"
             >
-              <ArrowLeft size={16} /> <span className="hidden sm:inline">Home</span>
-            </button>
-            <div className="w-px h-5 bg-bharat-border" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🏛️</span>
+              <ArrowLeft size={15} />
+              <span className="hidden sm:inline">Home</span>
+            </motion.button>
+            <div className="w-px h-5 bg-white/10" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-bharat-green/30 to-emerald-600/20 border border-bharat-green/25 flex items-center justify-center text-lg shadow-glow-sm">
+                🏛️
+              </div>
               <div>
-                <span className="font-bold text-white text-base">Yojna-Setu</span>
-                <span className="hidden sm:inline text-gray-500 text-xs ml-2">· AI Scheme Assistant</span>
+                <span className="font-bold text-white text-base tracking-tight">Yojna-Setu</span>
+                <span className="hidden sm:inline text-gray-600 text-xs ml-2">AI Scheme Assistant</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-bharat-green bg-bharat-green/10 border border-bharat-green/20 px-2.5 py-1 rounded-full">
-              <Sparkles size={10} /> Claude AI + AWS
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-bharat-green bg-bharat-green/8 border border-bharat-green/20 px-2.5 py-1 rounded-full">
+              <Sparkles size={9} /> Nova Pro + AWS
             </span>
-            <button onClick={handleReset}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-bharat-card border border-bharat-border hover:border-gray-600 px-3 py-1.5 rounded-lg transition-all">
-              <RefreshCw size={12} />
+            <motion.button
+              onClick={handleReset}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white glass px-3 py-1.5 rounded-lg transition-colors hover:border-white/15"
+            >
+              <RefreshCw size={11} />
               <span className="hidden sm:inline">{strings.reset}</span>
-            </button>
+            </motion.button>
           </div>
         </div>
       </header>
 
       {/* ── Language Selector ── */}
-      <div className="flex-shrink-0 border-b border-bharat-border px-4 py-2 bg-bharat-card/40">
+      <div className="flex-shrink-0 border-b border-white/[0.05] px-4 py-2.5 bg-white/[0.01]">
         <div className="max-w-6xl mx-auto">
           <LanguageSelector selected={language} onChange={setLanguage} />
         </div>
@@ -317,58 +433,89 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* Mobile tab switcher */}
-          <div className="lg:hidden flex mb-3 bg-bharat-card border border-bharat-border rounded-xl p-1">
-            <button onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all
-                ${activeTab === 'chat' ? 'bg-bharat-green text-white' : 'text-gray-400 hover:text-white'}`}>
-              <MessageSquare size={14} /> Chat
-            </button>
-            <button onClick={() => setActiveTab('schemes')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all
-                ${activeTab === 'schemes' ? 'bg-bharat-green text-white' : 'text-gray-400 hover:text-white'}`}>
-              🏆 Schemes
-              {matchedSchemes.length > 0 && (
-                <span className="bg-white text-bharat-green text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {matchedSchemes.length}
-                </span>
-              )}
-            </button>
+          <div className="lg:hidden flex mb-3 glass-frost rounded-xl p-1">
+            {[
+              { id: 'chat', label: 'Chat', icon: <MessageSquare size={13} /> },
+              { id: 'schemes', label: 'Schemes', icon: '🏆', badge: matchedSchemes.length },
+            ].map(tab => (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
+                  ${activeTab === tab.id
+                    ? 'bg-bharat-green text-white shadow-glow-sm'
+                    : 'text-gray-500 hover:text-gray-300'
+                  }`}
+              >
+                {typeof tab.icon === 'string' ? tab.icon : tab.icon}
+                {tab.label}
+                {tab.badge > 0 && (
+                  <span className="bg-white text-bharat-green text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {tab.badge}
+                  </span>
+                )}
+              </motion.button>
+            ))}
           </div>
 
           {/* Chat messages area */}
-          <div className={`flex-1 overflow-y-auto space-y-4 pr-1 mb-3 ${activeTab === 'schemes' ? 'hidden lg:block' : ''}`}
-            style={{ scrollbarWidth: 'thin' }}>
-            {messages.map(msg => (
-              <MessageBubble key={msg.id} message={msg} onSpeak={speakText} isSpeaking={isSpeaking} />
-            ))}
-            {isLoading && <TypingIndicator />}
+          <div
+            className={`flex-1 overflow-y-auto space-y-4 pr-1 mb-3 ${activeTab === 'schemes' ? 'hidden lg:block' : ''}`}
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            <AnimatePresence initial={false}>
+              {messages.map(msg => (
+                <MessageBubble key={msg.id} message={msg} onSpeak={speakText} isSpeaking={isSpeaking} />
+              ))}
+            </AnimatePresence>
+            <AnimatePresence>
+              {isLoading && <TypingIndicator key="typing" />}
+            </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Sample prompts (before first message) */}
+          {/* Sample prompts */}
           {!hasStarted && activeTab === 'chat' && (
-            <div className="mb-3">
+            <motion.div
+              className="mb-3"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
+            >
               <SamplePrompts
                 onSelect={(text, lang) => { setLanguage(lang); setTimeout(() => sendMessage(text, lang), 50); }}
                 language={language}
               />
-            </div>
+            </motion.div>
           )}
 
-          {/* Input row */}
-          <div className={`flex-shrink-0 ${activeTab === 'schemes' ? 'hidden lg:flex' : 'flex'} flex-col gap-2`}>
+          {/* Input area */}
+          <div className={`flex-shrink-0 ${activeTab === 'schemes' ? 'hidden lg:flex' : 'flex'} flex-col gap-3`}>
+
             {/* Voice button row */}
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center py-2">
               <VoiceButton
                 language={language}
                 onTranscript={t => sendMessage(t)}
-                onListeningChange={setIsListening}
+                onListeningChange={(v) => {
+                  setIsListening(v);
+                  if (v) {
+                    window.speechSynthesis?.cancel();
+                    audioRef.current?.pause();
+                    audioRef.current = null;
+                    setIsSpeaking(false);
+                  }
+                }}
                 disabled={isLoading}
+                resetKey={voiceResetKey}
               />
             </div>
 
             {/* Text input row */}
-            <div className="flex gap-2">
+            <div className="input-glow flex items-end gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-3 hover:border-white/[0.18] transition-colors duration-200">
               <textarea
                 ref={inputRef}
                 value={inputText}
@@ -377,74 +524,105 @@ export default function ChatPage() {
                 placeholder={strings.placeholder}
                 disabled={isLoading || isListening}
                 rows={2}
-                className={`flex-1 bg-bharat-card border border-bharat-border rounded-xl px-3 py-2.5 text-sm text-gray-200
-                  placeholder-gray-600 resize-none focus:outline-none focus:border-bharat-green/50 focus:ring-1 focus:ring-bharat-green/20
-                  disabled:opacity-50 transition-all lang-${language}`}
+                className={`flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500
+                  resize-none focus:outline-none disabled:opacity-40 leading-relaxed lang-${language}`}
               />
-              <button
+              <motion.button
                 onClick={() => sendMessage(inputText)}
                 disabled={!inputText.trim() || isLoading}
-                className="self-end bg-bharat-green hover:bg-bharat-darkgreen disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl p-3 transition-all">
-                <Send size={16} />
-              </button>
+                whileTap={!inputText.trim() || isLoading ? {} : { scale: 0.88 }}
+                whileHover={inputText.trim() && !isLoading ? { scale: 1.06 } : {}}
+                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mb-0.5 transition-all duration-200 ${
+                  inputText.trim() && !isLoading
+                    ? 'bg-bharat-green text-white shadow-glow-sm'
+                    : isLoading
+                    ? 'bg-bharat-green/30 text-bharat-green cursor-not-allowed'
+                    : 'bg-white/[0.05] text-gray-600 cursor-not-allowed'
+                }`}
+              >
+                {isLoading ? (
+                  <motion.div
+                    className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  />
+                ) : (
+                  <Send size={14} />
+                )}
+              </motion.button>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: Schemes Panel (desktop only, or mobile when tab=schemes) */}
+        {/* RIGHT: Schemes Panel */}
         <div className={`
-          lg:w-80 xl:w-96 flex-shrink-0 flex flex-col gap-3 overflow-y-auto
+          lg:w-80 xl:w-96 flex-shrink-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden
           ${activeTab === 'schemes' ? 'flex' : 'hidden lg:flex'}
-        `} style={{ scrollbarWidth: 'thin' }}>
+        `} style={{ scrollbarWidth: 'none' }}>
 
           {/* Schemes header */}
-          <div className="bg-bharat-card border border-bharat-border rounded-2xl p-4 sticky top-0 z-10">
+          <div className="glass-frost rounded-2xl p-4 sticky top-0 z-10">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🏆</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-600/10 border border-yellow-500/20 flex items-center justify-center text-lg">
+                  🏆
+                </div>
                 <div>
                   <p className="text-white font-bold text-sm">
                     {matchedSchemes.length > 0 ? strings.matched : strings.noMatch}
                   </p>
-                  <p className="text-gray-500 text-xs">
+                  <p className="text-gray-600 text-xs">
                     {matchedSchemes.length > 0 ? `${matchedSchemes.length} ${strings.schemeCount}` : 'Describe yourself to find schemes'}
                   </p>
                 </div>
               </div>
               {matchedSchemes.length > 0 && (
-                <span className="bg-bharat-green text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full bg-bharat-green text-white text-xs font-bold flex items-center justify-center shadow-glow-sm">
                   {matchedSchemes.length}
-                </span>
+                </div>
               )}
             </div>
           </div>
 
           {/* Matched scheme cards */}
           {matchedSchemes.length > 0 ? (
-            matchedSchemes.map(scheme => (
-              <SchemeCard key={scheme.id} scheme={scheme} language={language} />
+            matchedSchemes.map((scheme, i) => (
+              <motion.div
+                key={scheme.id}
+                initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                transition={{ type: 'spring', stiffness: 280, damping: 28, delay: i * 0.08 }}
+              >
+                <SchemeCard scheme={scheme} language={language} index={i} />
+              </motion.div>
             ))
           ) : (
-            /* Empty state */
-            <div className="bg-bharat-card border border-bharat-border rounded-2xl p-5">
-              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Popular Schemes</p>
-              <div className="space-y-3">
-                {allSchemes.slice(0, 5).map(s => (
-                  <div key={s.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-bharat-muted/20 transition-colors">
+            <div className="glass-card rounded-2xl p-5">
+              <p className="text-gray-600 text-xs font-semibold uppercase tracking-widest mb-4">Popular Schemes</p>
+              <div className="space-y-2">
+                {allSchemes.slice(0, 5).map((s, i) => (
+                  <motion.div
+                    key={s.id}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-default"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                  >
                     <span className="text-xl flex-shrink-0">
                       {s.category === 'agriculture' ? '🌾' : s.category === 'health' ? '🏥' : s.category === 'housing' ? '🏠' : s.category === 'pension' ? '👴' : s.category === 'employment' ? '⚒️' : '✅'}
                     </span>
                     <div className="min-w-0">
                       <p className="text-white text-xs font-semibold truncate">{s.name}</p>
-                      <p className="text-gray-500 text-xs">{s.benefit.type === 'cash' || s.benefit.type === 'pension' ? `₹${s.benefit.amount?.toLocaleString('en-IN')}` : s.benefit.type}</p>
+                      <p className="text-gray-600 text-xs">{s.benefit.type === 'cash' || s.benefit.type === 'pension' ? `₹${s.benefit.amount?.toLocaleString('en-IN')}` : s.benefit.type}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-              <div className="mt-4 pt-3 border-t border-bharat-border">
-                <div className="flex items-start gap-2 text-xs text-gray-500">
-                  <Info size={12} className="flex-shrink-0 mt-0.5 text-bharat-green" />
-                  <span>Speak or type to get AI-matched schemes for YOUR profile</span>
+              <div className="mt-4 pt-3 border-t border-white/[0.06]">
+                <div className="flex items-start gap-2 text-xs text-gray-700">
+                  <Info size={11} className="flex-shrink-0 mt-0.5 text-bharat-green/60" />
+                  <span>Speak or type to get AI-matched schemes for your profile</span>
                 </div>
               </div>
             </div>
@@ -453,16 +631,30 @@ export default function ChatPage() {
       </div>
 
       {/* Speaking indicator */}
-      {isSpeaking && (
-        <div className="fixed bottom-4 right-4 z-50 bg-bharat-green text-white text-xs px-3 py-2 rounded-full flex items-center gap-2 shadow-xl shadow-bharat-green/30">
-          <div className="flex items-end gap-0.5 h-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="w-0.5 bg-white rounded-full" style={{ animation: 'wave 0.8s ease-in-out infinite', animationDelay: `${i * 0.1}s`, height: '100%' }} />
-            ))}
-          </div>
-          Speaking...
-        </div>
-      )}
+      <AnimatePresence>
+        {isSpeaking && (
+          <motion.div
+            className="fixed bottom-5 right-5 z-50 glass-green text-bharat-green text-xs px-4 py-2.5 rounded-full flex items-center gap-2.5 shadow-glow-green"
+            initial={{ opacity: 0, y: 16, scale: 0.88, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0,  scale: 1,    filter: 'blur(0px)' }}
+            exit={{    opacity: 0, y: 10,  scale: 0.92, filter: 'blur(4px)' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+          >
+            <div className="flex items-end gap-0.5 h-3">
+              {[...Array(4)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-0.5 bg-bharat-green rounded-full"
+                  animate={{ scaleY: [0.4, 1.2, 0.4] }}
+                  transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.1, ease: 'easeInOut' }}
+                  style={{ height: '100%', transformOrigin: 'bottom' }}
+                />
+              ))}
+            </div>
+            Speaking...
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

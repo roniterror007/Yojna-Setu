@@ -173,7 +173,7 @@
       "documents": ["Aadhaar card", "BPL ration card / SECC data", "Bank account", "Address proof"],
       "howToApply": "Visit nearest LPG distributor with documents",
       "website": "https://www.pmuy.gov.in",
-      "tags": ["women", "cooking", "LPG", "gas", "BPL", "rural", "kitchen"],
+      "tags": ["women", "cooking", "LPG", "gas", "BPL", "rural", "kitchen", "pregnant", "mother", "housewife"],
       "translations": {
         "hi": {
           "name": "उज्ज्वला योजना",
@@ -223,7 +223,7 @@
       "documents": ["Aadhaar card", "Job card (obtained from Gram Panchayat)", "Bank account"],
       "howToApply": "Apply for Job Card at Gram Panchayat. Then apply for work when needed.",
       "website": "https://nrega.nic.in",
-      "tags": ["employment", "rural", "labour", "job", "wages", "guarantee"],
+      "tags": ["employment", "rural", "labour", "job", "wages", "guarantee", "farmer", "BPL", "daily labourer", "poor"],
       "translations": {
         "hi": {
           "name": "मनरेगा",

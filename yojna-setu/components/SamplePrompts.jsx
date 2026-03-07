@@ -34,14 +34,13 @@ const SAMPLES = [
 ];
 
 export default function SamplePrompts({ onSelect, language }) {
-  const filtered = SAMPLES.filter(s => s.lang === language || language === 'en');
-  const display = filtered.length > 0 ? filtered : SAMPLES.slice(0, 3);
+  const display = SAMPLES.filter(s => s.lang === language);
 
   return (
     <div>
       <p className="text-gray-500 text-xs mb-2 text-center">Try these examples:</p>
       <div className="flex flex-col gap-2">
-        {display.slice(0, 3).map((sample, i) => (
+        {display.map((sample, i) => (
           <button
             key={i}
             onClick={() => onSelect(sample.text, sample.lang)}
