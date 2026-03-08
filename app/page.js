@@ -98,7 +98,7 @@ export default function LandingPage() {
 
   // Auto-start music on page load
   useEffect(() => {
-    const audio = new Audio('/api/music');
+    const audio = new Audio('/bg-music.mp3');
     audio.loop = true;
     audio.volume = 0;
     audio.preload = 'auto';

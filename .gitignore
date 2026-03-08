@@ -27,5 +27,5 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Large media files (served via /api/music proxy instead)
-public/bg-music.mp3
+# Large media files
+# public/bg-music.mp3  # committed for deployment
