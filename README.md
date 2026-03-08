@@ -20,7 +20,7 @@ Yojna-Setu is a **voice-first AI assistant** that helps rural Indians discover g
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 14, React 18, Tailwind CSS |
-| AI/NLU | Claude claude-sonnet-4-6 (Anthropic) via Claude API |
+| AI/NLU | Anthropic API |
 | Speech Input | Web Speech API (browser-native) |
 | Text-to-Speech | AWS Polly (primary) + Browser Speech Synthesis (fallback) |
 | Database | JSON schemes database (20+ schemes) |
@@ -106,8 +106,7 @@ git push -u origin main
 ### Services Used
 1. **Amazon Polly** - Text-to-Speech in Indian languages
 2. **Amazon Transcribe** - Speech-to-Text (enhance voice input)
-3. **Amazon Bedrock** - Enhanced AI with Claude (alternative)
-4. **Amazon S3** - Store schemes database
+3. **Amazon S3** - Store schemes database
 5. **AWS Lambda** - Serverless API functions
 6. **Amazon DynamoDB** - Session storage
 
@@ -140,7 +139,7 @@ The app automatically uses Polly when credentials are present.
 ### Core Features (Working Now)
 - **Voice Input**: Click mic → speak → automatic transcription
 - **Multi-language**: Hindi, Kannada, Tamil, Telugu, English
-- **AI Matching**: Claude extracts your profile and matches 20+ government schemes
+- **AI Matching**: Extract user profile and match to 20+ government schemes
 - **Voice Output**: Hear the response in your language (browser TTS, Polly when configured)
 - **Scheme Cards**: Detailed cards with eligibility, documents, how to apply
 - **Follow-up Q&A**: Multi-turn conversation with context memory
@@ -181,7 +180,7 @@ The app automatically uses Polly when credentials are present.
 ```
 User Voice → Web Speech API → Text
                                 ↓
-                         /api/chat (Claude claude-sonnet-4-6)
+                         /api/chat (AI Service)
                                 ↓
                     Scheme matching + Profile extraction
                                 ↓
