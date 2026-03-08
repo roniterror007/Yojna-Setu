@@ -195,6 +195,7 @@ export async function POST(request) {
       return Response.json({
         error: 'AWS credentials not configured. Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to .env.local',
         setup_instructions: 'Go to AWS Console → IAM → Create user with BedrockFullAccess + PollyAccess policies',
+        debug: { hasKey: !!process.env.YOJNA_AWS_KEY, hasSecret: !!process.env.YOJNA_AWS_SECRET, region: process.env.YOJNA_AWS_REGION || 'NOT SET' },
       }, { status: 503 });
     }
 
