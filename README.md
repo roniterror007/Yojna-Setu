@@ -57,9 +57,6 @@ Open http://localhost:3000
 ### .env.local Setup
 
 ```env
-# Required
-ANTHROPIC_API_KEY=sk-ant-api03-...
-
 # Optional (for AWS Polly TTS - higher quality voice)
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
