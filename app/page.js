@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Mic, ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Mic, ChevronDown } from 'lucide-react';
 import SplashScreen from '../components/SplashScreen';
 
 const LANGUAGE_CYCLE = [
@@ -81,93 +81,10 @@ export default function LandingPage() {
   const router = useRouter();
   const [langIdx, setLangIdx] = useState(0);
   const [visible, setVisible] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
+const [scrolled, setScrolled] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [musicOn, setMusicOn] = useState(false);
-  const bgMusicRef = useRef(null);
-  const autoStartHandlerRef = useRef(null);
-
-  const fadeInAudio = (audio) => {
-    const fadeIn = setInterval(() => {
-      if (audio.volume >= 0.16) { audio.volume = 0.18; clearInterval(fadeIn); }
-      else audio.volume = Math.min(audio.volume + 0.02, 0.18);
-    }, 80);
-    setMusicOn(true);
-  };
-
-  // Auto-start music on page load
-  useEffect(() => {
-    const audio = new Audio('/bg-music.mp3');
-    audio.loop = true;
-    audio.volume = 0;
-    audio.preload = 'auto';
-    bgMusicRef.current = audio;
-
-    const unmute = () => {
-      audio.muted = false;
-      fadeInAudio(audio);
-      autoStartHandlerRef.current = null;
-    };
-
-    // Try direct unmuted autoplay first
-    audio.play().then(() => {
-      const fadeIn = setInterval(() => {
-        if (audio.volume >= 0.16) { audio.volume = 0.18; clearInterval(fadeIn); }
-        else audio.volume = Math.min(audio.volume + 0.02, 0.18);
-      }, 80);
-      setMusicOn(true);
-    }).catch(() => {
-      // Direct blocked — play muted (always allowed), unmute on first interaction
-      audio.muted = true;
-      audio.play().catch(() => {});
-      autoStartHandlerRef.current = unmute;
-      document.addEventListener('click', unmute, { once: true });
-      document.addEventListener('touchstart', unmute, { once: true });
-    });
-
-    return () => {
-      if (autoStartHandlerRef.current) {
-        document.removeEventListener('click', autoStartHandlerRef.current);
-        document.removeEventListener('touchstart', autoStartHandlerRef.current);
-      }
-      // Smooth fade-out on any navigation (browser back, link, etc.)
-      const fadeOut = setInterval(() => {
-        if (audio.volume <= 0.02) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
-        else audio.volume = Math.max(audio.volume - 0.06, 0);
-      }, 25);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggleMusic = () => {
-    // Clear pending auto-start listener if user manually toggles
-    if (autoStartHandlerRef.current) {
-      document.removeEventListener('click', autoStartHandlerRef.current);
-      document.removeEventListener('touchstart', autoStartHandlerRef.current);
-      autoStartHandlerRef.current = null;
-    }
-    const audio = bgMusicRef.current;
-    if (!audio) return;
-    if (!musicOn) {
-      fadeInAudio(audio);
-    } else {
-      const fadeOut = setInterval(() => {
-        if (audio.volume <= 0.04) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
-        else audio.volume = Math.max(audio.volume - 0.04, 0);
-      }, 80);
-      setMusicOn(false);
-    }
-  };
-
   const handleNavigate = () => {
-    // Fade out music
-    const audio = bgMusicRef.current;
-    if (audio && !audio.paused) {
-      const fadeOut = setInterval(() => {
-        if (audio.volume <= 0.04) { audio.volume = 0; audio.pause(); clearInterval(fadeOut); }
-        else audio.volume = Math.max(audio.volume - 0.06, 0);
-      }, 40);
-    }
     setIsLeaving(true);
     setTimeout(() => router.push('/chat'), 320);
   };
@@ -217,19 +134,6 @@ export default function LandingPage() {
             <span className="font-bold text-white text-lg tracking-tight">Yojna-Setu</span>
           </div>
           <div className="flex items-center gap-3">
-<motion.button
-              onClick={toggleMusic}
-              whileTap={{ scale: 0.9 }}
-              title={musicOn ? 'Mute music' : 'Play background music'}
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 ${
-                musicOn
-                  ? 'text-bharat-green border-bharat-green/30 bg-bharat-green/8'
-                  : 'text-gray-600 border-white/[0.07] hover:text-gray-300'
-              }`}
-            >
-              {musicOn ? <Volume2 size={12} /> : <VolumeX size={12} />}
-              <span className="hidden sm:inline">{musicOn ? 'Music on' : 'Music off'}</span>
-            </motion.button>
           </div>
         </div>
       </nav>

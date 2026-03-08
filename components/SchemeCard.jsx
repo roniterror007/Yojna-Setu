@@ -124,19 +124,19 @@ export default function SchemeCard({ scheme, language = 'hi', index = 0 }) {
         </div>
       )}
 
-      {/* Footer: link + last updated */}
+      {/* Footer: apply link + last updated */}
       <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
         {scheme.website && (
           <motion.a
             href={scheme.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-bharat-green text-xs"
-            whileHover={{ x: 2, color: '#5a9e28' }}
+            className="inline-flex items-center gap-1.5 text-bharat-green text-xs font-medium hover:underline"
+            whileHover={{ x: 2 }}
             transition={{ duration: 0.15 }}
           >
             <ExternalLink size={11} />
-            <span>Apply / Learn more</span>
+            <span>Apply Now</span>
           </motion.a>
         )}
         {scheme.lastUpdated && (
