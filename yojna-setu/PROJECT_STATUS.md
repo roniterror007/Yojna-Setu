@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-Yojna-Setu (योजना-सेतु) is a voice-first, multilingual AI assistant that helps rural Indians discover and apply for government welfare schemes. It works in Hindi, Kannada, Tamil, Telugu, and English — designed for 350 million citizens with limited literacy and internet access.
+Yojna-Setu (योजना-सेतु) is a voice-first, multilingual AI assistant that helps every Indian citizen discover and apply for government welfare schemes. It works in Hindi, Kannada, Tamil, Telugu, and English.
 
 ---
 
@@ -19,9 +19,10 @@ Yojna-Setu (योजना-सेतु) is a voice-first, multilingual AI assi
 | Voice Output (TTS) | Amazon Polly (server-side) + Browser Speech Synthesis (fallback) |
 | Session Storage | Amazon DynamoDB + in-memory fallback |
 | Scheme Storage | Amazon S3 + local JSON fallback |
-| Serverless | AWS Lambda + API Gateway |
-| Deployment | Vercel (frontend) + AWS (backend services) |
-| Scheduling | Vercel Cron Jobs (48h scheme refresh) |
+| Serverless Backend | AWS Lambda + API Gateway (via AWS Amplify — auto-managed) |
+| Deployment | AWS Amplify (frontend + Lambda-backed API routes) |
+| Scheduling | AWS EventBridge (48h scheme refresh cron) |
+| Background Music | `/api/music` proxy route → archive.org (no large file in repo) |
 
 ---
 
@@ -30,36 +31,38 @@ Yojna-Setu (योजना-सेतु) is a voice-first, multilingual AI assi
 ```
 yojna-setu/
 ├── app/
-│   ├── page.js                      # Landing page
+│   ├── page.js                      # Landing page (music, transitions, language cycle)
 │   ├── chat/
-│   │   └── page.js                  # Main chat UI (948 lines)
+│   │   └── page.js                  # Main chat UI (voice, TTS, messages, scheme cards)
 │   └── api/
-│       ├── chat/route.js            # AI scheme matching (302 lines)
-│       ├── speak/route.js           # TTS — Polly + browser fallback (98 lines)
-│       ├── transcribe/route.js      # STT — Amazon Transcribe (125 lines)
-│       ├── session/route.js         # DynamoDB session persistence (156 lines)
+│       ├── chat/route.js            # AI scheme matching via Amazon Bedrock Nova Pro
+│       ├── speak/route.js           # TTS — Polly + browser fallback
+│       ├── transcribe/route.js      # STT — Amazon Transcribe
+│       ├── session/route.js         # DynamoDB session persistence (GET/POST/DELETE)
+│       ├── music/route.js           # Music proxy — streams from archive.org (bypasses CORS)
 │       └── refresh-schemes/route.js # 48h scheme cache invalidation
 ├── components/
 │   ├── SchemeCard.jsx               # Scheme card with lastUpdated badge
-│   ├── VoiceButton.jsx              # Mic button with Web Speech API
-│   ├── LanguageSelector.jsx         # 5-language switcher
+│   ├── VoiceButton.jsx              # Mic button with waveform + silence auto-stop
+│   ├── SplashScreen.jsx             # 6-phase animated launch screen
+│   ├── AshokaEmblem.jsx             # National emblem img component (unused — reverted to 🏛️)
 │   ├── SamplePrompts.jsx            # Suggested prompts per language
-│   ├── ConversationMessage.jsx      # Chat message bubble
-│   ├── DynamicGlow.jsx              # Background animation
+│   ├── DynamicGlow.jsx              # Background glow animation
 │   └── LoadingDots.jsx              # Typing indicator
 ├── lib/
 │   ├── schemes.js                   # Local scheme data + AI summary helper
 │   └── s3-schemes.js                # S3 scheme fetching with 30-min cache
 ├── data/
-│   └── schemes.json                 # 21 flagship government schemes
+│   └── schemes.json                 # 21 flagship government schemes (all with lastUpdated)
 ├── lambda/
-│   ├── chat-handler.js              # Standalone Lambda for chat/Bedrock
-│   ├── refresh-handler.js           # Lambda cron for 48h scheme refresh
+│   ├── chat-handler.js              # Standalone Lambda handler for chat/Bedrock
+│   ├── refresh-handler.js           # Lambda handler for EventBridge 48h cron
 │   └── schemes-summary.json         # Schemes data for Lambda cold start
-├── vercel.json                      # Vercel cron: every 48h
-├── .env.local                       # AWS credentials + config
+├── amplify.yml                      # AWS Amplify build config
+├── vercel.json                      # (kept for reference — cron now on EventBridge)
+├── .env.local                       # AWS credentials + config (never committed)
 ├── tailwind.config.js
-├── next.config.js
+├── next.config.js                   # output: standalone (Amplify compatible)
 └── package.json
 ```
 
@@ -103,7 +106,6 @@ All 21 schemes have `lastUpdated` dates (Feb 2025) displayed on scheme cards.
 - Uses Amazon Bedrock (Nova Pro) for AI inference
 - 30-minute in-memory response cache (max 200 entries)
 - 5-language fallback responses when Bedrock is unavailable
-- Detailed IAM error messages for setup guidance
 
 ### `POST /api/speak`
 - Accepts: `{ text, language }`
@@ -114,120 +116,23 @@ All 21 schemes have `lastUpdated` dates (Feb 2025) displayed on scheme cards.
 - Accepts: base64 audio blob
 - Returns: `{ transcript }` or `{ fallback: true }` if S3 not configured
 - Uploads audio to S3 → Amazon Transcribe → returns text
-- Client falls back to Web Speech API if `fallback: true`
 
 ### `GET|POST|DELETE /api/session`
-- GET `?sessionId=xxx` — retrieve conversation session from DynamoDB
+- GET `?sessionId=xxx` — retrieve session from DynamoDB
 - POST `{ sessionId, language, messages, profile }` — save/update session
 - DELETE `?sessionId=xxx` — clear session on reset
 - Falls back to in-memory Map if DynamoDB not configured
 - 24-hour TTL on DynamoDB items
 
+### `GET /api/music`
+- Proxies background music from archive.org
+- Bypasses CORS restrictions
+- Removes need for 72MB file in repo
+
 ### `GET|POST /api/refresh-schemes`
 - GET — returns scheme metadata (count, lastUpdated, source)
 - POST `{ secret? }` — invalidates S3 cache, re-fetches fresh scheme data
-- Called automatically by Vercel cron every 48 hours
-
----
-
-## AI System Prompt Features
-
-The system prompt in `app/api/chat/route.js` implements all requirements:
-
-### Core Behavior
-- Responds ONLY in user-selected language (hi/kn/ta/te/en)
-- Warm, simple language — avoids bureaucratic jargon
-- Bullet-point format for all scheme listings (`•`)
-- Bold scheme names with `**double asterisks**`
-
-### Req 10.3 — Eligibility Simplification
-- Breaks eligibility into YES/NO questions
-- Uses checkbox format: ✓ confirmed, ? unknown, ✗ not met
-
-### Req 10.4 — Location-Specific Benefits
-- MGNREGA state wages: UP ₹213/day, Karnataka ₹309/day, Kerala ₹333/day, Tamil Nadu ₹256/day, Andhra ₹257/day, Maharashtra ₹273/day
-- PMAY-G: plains ₹1.20 lakh, hilly/NE ₹1.30 lakh
-- Pension state top-ups noted
-
-### Req 10.5 — Time-Sensitive Deadlines
-- ⚠️ PMMVY: Register within 150 days of pregnancy
-- ⚠️ PM Fasal Bima: Kharif July / Rabi December cutoff
-- ⚠️ NSP Scholarship: Oct–Nov application window
-- ⚠️ Kisan Credit Card: Before crop sowing season
-
-### Req 2.3 — Conflict Detection
-- Detects contradictory info (e.g., government employee asking for PM-KISAN)
-- Gently flags and seeks clarification before recommending
-
-### Req 5.5 — Conversation Summary
-- After 3+ turns, summarizes understood profile and confirms before recommending
-- Format: state, occupation, income, family details
-
-### Nearest Application Centers (PDF USP)
-- CSC (Common Service Centre) — every Gram Panchayat
-- Gram Panchayat Office — MGNREGA, PMAY-G, pensions
-- Anganwadi Centre — PMMVY, ICDS, PM Poshan
-- Bank/Post Office — PM-KISAN, PM-MUDRA, Jan Dhan
-- Ration Shop — PMGKAY, Antyodaya cards
-- School/College — NSP Scholarship, PM Vidyalakshmi
-- Always mentions: `umang.gov.in`, `DigiLocker`, `cscindia.org`
-
-### Comprehensive Scheme Coverage (PDF USP)
-- 21 flagship schemes in database
-- Directs users to `myscheme.gov.in` (700+ central + state schemes)
-- `jansamarth.in` — 13 credit-linked schemes
-- UMANG App — 1,200+ government services
-- State portals: up.gov.in, karnataka.gov.in, tnschemes.in, ap.gov.in, telangana.gov.in
-
----
-
-## Chat UI Features (app/chat/page.js)
-
-### Voice Features
-- **Req 1.1** — Mic button (Web Speech API) with waveform animation, ripple rings, localized status text
-- **Req 9.1** — Amazon Transcribe fallback for server-side STT
-- **Req 4.1** — Auto-play TTS (Polly or browser synthesis) only after voice input (not after typed messages)
-- **Silence auto-stop** — VoiceButton auto-stops and submits after 3.5 seconds of silence (via `silenceTimerRef` reset on each `onresult` event)
-- **Localized mic status** — "बोलने के लिए टैप करें", "ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ", "பேச தட்டவும்", etc. for all 5 languages
-
-### Language Support
-- **Full-screen language picker** on first load — animated language cards before chat UI appears
-- 5 languages: Hindi (हिंदी), Kannada (ಕನ್ನಡ), Tamil (தமிழ்), Telugu (తెలుగు), English
-- All UI strings (placeholders, errors, help text, wait times) translated in all 5 languages
-- Language switch clears all state (messages, history, schemes, TTS, voice) instantly
-- User-selected language is always trusted — AI's `detected_language` field is NOT used to auto-switch the UI language (prevents incorrect language switching)
-- Language pills in header (desktop) + floating picker button (mobile)
-
-### TTS — Text-to-Speech
-- **Hindi/English** — Amazon Polly: Kajal (neural hi-IN), Raveena (standard en-IN)
-- **Kannada/Tamil/Telugu** — Browser Speech Synthesis with native language codes; requires OS language pack
-- **`preprocessForTTS()`** — strips markdown (`**bold**`, `# headers`), converts `₹220/day` → `220 rupees per day`, `₹6000/year` → `6000 rupees per year`, cleans up slashes before TTS
-- **`voicesRef`** — pre-loaded via `voiceschanged` event (fixes async empty `getVoices()` on first load)
-- **AbortController** — in-flight `/api/chat` requests are cancelled immediately on language switch, preventing stale responses from rendering
-
-### Conversation
-- **Req 4.5** — Response segmentation: splits responses >180 words at paragraph breaks with "Part 1/2" labels
-- **Req 5.5** — Multi-turn conversation with full `conversationHistory` array sent to API
-- **Req 7.4** — 30-min server-side cache for identical queries
-- **Req 8.3** — Typing indicator shows estimated wait time (`~3-8 seconds`) in user's language
-- DynamoDB session persistence: saves last 20 turns after each AI response, deletes on reset
-
-### Scheme Results
-- **Req 10.1** — SchemeCard displays `lastUpdated` badge (Clock icon, "Updated Feb 2025")
-- Inline scheme cards below messages (collapsible with ChevronUp toggle)
-- Each SchemeCard shows: category badge, benefit amount, document list, howToApply, website ExternalLink button
-- 2-column grid on desktop, single column on mobile
-
-### Sample Prompts
-- 6 suggested prompts per language (farmer, widow, pregnant, student, small business, street vendor)
-- 2-column grid layout with emoji icons
-- Disappear once conversation starts
-
-### Accessibility & UX
-- **Req 7.2** — Offline detection banner (WifiOff icon, amber) with `navigator.onLine` + browser events
-- **Req 7.5** — Localized error messages: networkError, awsError, generic error in user's language
-- **Req 8.5** — Help modal: 5-step guide in user's language + in-modal language switcher
-- Framer Motion animations: bubble fade-in, avatar pop, typing indicator bounce, language picker slide-up
+- Triggered by AWS EventBridge every 48 hours
 
 ---
 
@@ -240,26 +145,26 @@ User (Browser)
     │                       │ fallback
     │               Amazon Transcribe ◄─ Audio via S3
     │
-    ├─ Text/Voice ──► Next.js Frontend (Vercel)
+    ├─ Text/Voice ──► AWS Amplify (CloudFront + S3 frontend)
+    │                       │
+    │               API Gateway ──► Lambda (Next.js API routes)
     │                       │
     │               /api/chat ──► Amazon Bedrock (Nova Pro)
-    │                       │           │
     │               /api/speak ──► Amazon Polly ──► audio/mpeg
-    │                       │
     │               /api/session ──► Amazon DynamoDB
-    │                       │         (YojnaSetuSessions table)
     │               /api/transcribe ──► Amazon S3 + Transcribe
+    │               /api/music ──► archive.org (proxied)
     │
     └─ Scheme Data ──► Amazon S3 (schemes.json, 30-min cache)
                             │ fallback
                        Local data/schemes.json
 
 Cron (every 48h):
-  Vercel Cron ──► /api/refresh-schemes ──► Invalidate S3 cache
   AWS EventBridge ──► Lambda (refresh-handler.js) ──► /api/refresh-schemes
 
-Lambda Standalone (API Gateway):
-  POST /chat ──► chat-handler.js ──► Amazon Bedrock (Nova Pro)
+Lambda Standalone:
+  chat-handler.js   ── Bedrock Nova Pro (alternative deployment)
+  refresh-handler.js ── EventBridge-triggered scheme refresh
 ```
 
 ---
@@ -268,13 +173,15 @@ Lambda Standalone (API Gateway):
 
 | Service | Purpose | Status |
 |---------|---------|--------|
-| Amazon Bedrock (Nova Pro) | AI scheme matching + multilingual responses | ✅ Implemented |
-| Amazon Polly | High-quality TTS in Indian languages | ✅ Implemented |
-| Amazon Transcribe | Server-side speech-to-text | ✅ Implemented |
-| Amazon S3 | Scheme data storage + audio files | ✅ Implemented |
-| Amazon DynamoDB | Session/conversation persistence | ✅ Implemented |
-| AWS Lambda | Serverless chat + cron handlers | ✅ Implemented |
-| Amazon API Gateway | REST API for Lambda functions | ✅ (Lambda ready) |
+| Amazon Bedrock (Nova Pro) | AI scheme matching + multilingual responses | ✅ Active |
+| Amazon Polly | High-quality TTS in Indian languages | ✅ Active |
+| Amazon Transcribe | Server-side speech-to-text | ✅ Active |
+| Amazon S3 | Scheme data storage + Transcribe audio staging | ✅ Active |
+| Amazon DynamoDB | Session/conversation persistence with TTL | ✅ Active |
+| AWS Lambda | Serverless API routes (Amplify-managed) + cron handler | ✅ Active |
+| Amazon API Gateway | REST API routing (Amplify-managed) | ✅ Active |
+| AWS Amplify | Full-stack hosting (frontend + Lambda-backed API) | ✅ Deployed |
+| AWS EventBridge | 48h cron trigger for scheme refresh | ✅ Configured |
 
 ---
 
@@ -297,7 +204,7 @@ REFRESH_SECRET=your-secret-here
 
 # App config
 NEXT_PUBLIC_APP_NAME=Yojna-Setu
-NEXT_PUBLIC_APP_URL=https://yojna-setu.vercel.app
+NEXT_PUBLIC_APP_URL=https://<amplify-url>.amplifyapp.com
 ```
 
 ---
@@ -308,8 +215,45 @@ Your AWS IAM user/role needs:
 - `AmazonBedrockFullAccess` — for Nova Pro inference
 - `AmazonPollyFullAccess` — for TTS
 - `AmazonTranscribeFullAccess` — for STT
-- `AmazonS3FullAccess` (or scoped to bucket) — for scheme data
+- `AmazonS3FullAccess` (or scoped to bucket) — for scheme data + audio
 - `AmazonDynamoDBFullAccess` (or scoped to table) — for sessions
+
+---
+
+## AWS Amplify Deployment
+
+### Steps
+1. Push to GitHub (already done)
+2. AWS Console → Amplify → Create new app → Host web app → GitHub → `Yojna-Sethu` repo → `main` branch
+3. Auto-detects `amplify.yml` — click Next → Save and deploy
+4. Add environment variables in Amplify Console (Environment variables section)
+5. Update `NEXT_PUBLIC_APP_URL` with the Amplify-assigned URL after first deploy
+
+### EventBridge Cron Setup
+1. AWS Console → EventBridge → Rules → Create rule
+2. Schedule: `rate(48 hours)`
+3. Target: API destination → `https://<amplify-url>/api/refresh-schemes` (POST)
+
+### Build Config (`amplify.yml`)
+```yaml
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+```
 
 ---
 
@@ -332,68 +276,76 @@ Your AWS IAM user/role needs:
 | 9.4 | S3 scheme data with local fallback | ✅ Done |
 | 9.5 | AWS Lambda handlers (chat + refresh) | ✅ Done |
 | 10.1 | `lastUpdated` on all schemes + SchemeCard badge | ✅ Done |
-| 10.2 | 48h cron refresh (Vercel + Lambda) | ✅ Done |
+| 10.2 | 48h cron refresh (EventBridge + Lambda) | ✅ Done |
 | 10.3 | YES/NO eligibility questions + checkboxes | ✅ Done |
 | 10.4 | State-specific benefit amounts | ✅ Done |
 | 10.5 | ⚠️ Time-sensitive deadline flagging | ✅ Done |
 | — | Silence auto-stop (3.5s timer in VoiceButton) | ✅ Done |
-| — | TTS text preprocessing (slash/₹ normalization) | ✅ Done |
+| — | TTS preprocessing (₹/lakh/crore amounts + markdown strip) | ✅ Done |
 | — | AbortController for language-switch race condition | ✅ Done |
 | — | Voice pre-loading via `voiceschanged` event | ✅ Done |
 
 ---
 
-## PDF Claims vs Implementation
+## Chat UI Features
 
-| PDF Claim | Implemented |
-|-----------|-------------|
-| Voice-first interface | ✅ Web Speech API + Amazon Transcribe |
-| Hindi, Kannada, Tamil, Telugu support | ✅ All 5 languages (+ English) |
-| Multi-turn conversations | ✅ Full conversationHistory array |
-| AI-powered scheme matching | ✅ Amazon Bedrock Nova Pro |
-| Audio responses in native language | ✅ Amazon Polly + browser synthesis |
-| Amazon Bedrock | ✅ Nova Pro via ConverseCommand |
-| Amazon Polly | ✅ Implemented |
-| Amazon Transcribe | ✅ Implemented |
-| Amazon S3 | ✅ Scheme storage + Transcribe audio |
-| Amazon DynamoDB | ✅ Session persistence (GET/POST/DELETE) |
-| AWS Lambda | ✅ chat-handler.js + refresh-handler.js |
-| Amazon API Gateway | ✅ Lambda handlers ready to deploy |
-| Constantly updated scheme database | ✅ 48h Vercel cron + Lambda EventBridge |
-| Location-specific office information | ✅ CSC/Gram Panchayat/Anganwadi in AI prompts |
-| 700+ schemes coverage | ✅ Bridged: myscheme.gov.in + state portals referenced |
-| End-to-end guidance + document checklist | ✅ AI provides docs + nearest center |
+### Voice Features
+- Mic button with waveform animation, ripple rings, localized status text
+- Amazon Transcribe fallback for server-side STT
+- Auto-play TTS (Polly or browser synthesis) only after voice input
+- Silence auto-stop — 3.5s timer auto-submits after no speech
+- Localized mic status in all 5 languages
+
+### Language Support
+- Full-screen language picker (on first load and via header button)
+- 5 languages: Hindi, Kannada, Tamil, Telugu, English
+- All UI strings translated in all 5 languages
+- Language switch clears all state instantly + cancels in-flight requests via AbortController
+
+### TTS — Text-to-Speech
+- Hindi/English: Amazon Polly (Kajal neural hi-IN, Raveena en-IN)
+- Kannada/Tamil/Telugu: Browser Speech Synthesis with native language codes
+- `preprocessForTTS()` — strips markdown, converts `₹1.5 lakh` → `1.5 lakh rupees`, handles per-year/month/day
+- Voices pre-loaded via `voiceschanged` event to fix async empty `getVoices()`
+
+### Scheme Results
+- Scheme cards shown inline below AI messages (collapsible)
+- Right sidebar panel (visible on md+ screens) shows matched schemes persistently
+- Each SchemeCard: category badge, benefit amount, documents, howToApply, website link
+- `lastUpdated` badge on every card
+
+### UI / UX
+- Splash screen with 6-phase animation → smooth crossfade to landing page
+- Indian flag tricolor theme (saffron #FF9933 → white → green #138808)
+- Background music via `/api/music` proxy (auto-starts, 18% volume, from 8s mark, fades on navigation)
+- Offline detection banner
+- Help modal in user's language
 
 ---
 
-## Running Locally
+## Recent Changes (March 8, 2026)
 
-```bash
-# 1. Navigate to project
-cd "c:/Users/shree/OneDrive/Desktop/AI FOR BHARAT/yojna-setu"
+### AWS Amplify Migration
+- Created `amplify.yml` build config
+- Added `output: 'standalone'` to `next.config.js` for Amplify compatibility
+- Switched background music source from `/bg-music.mp3` (72MB local file) to `/api/music` proxy
+- Added `public/bg-music.mp3` to `.gitignore` (too large for repo)
+- Deployment target: AWS Amplify (Lambda-backed Next.js) instead of Vercel
+- Cron: AWS EventBridge 48h rule → `/api/refresh-schemes` (replaces Vercel Cron)
 
-# 2. Install dependencies (already done)
-npm install
+### Bug Fixes
+- **TTS not reading ₹ amounts** — Improved `preprocessForTTS()` regex: now handles `₹1.5 lakh`, `₹50,000 crore`, and regional lakh/crore words in all 5 languages
+- **Language dropdown overlapping** — Removed inline dropdown from chat header; replaced with button that opens full-screen `LanguagePicker` (same as initial load)
+- **Kannada schemes panel missing** — Changed `hidden lg:flex` → `hidden md:flex` so schemes sidebar shows on tablets and smaller desktops
+- **Background music not starting** — Added `audio.preload = 'auto'`; moved `audio.currentTime = 8` to fire after `canplay` event (fixes seek failure on 72MB file before metadata loads)
 
-# 3. Add AWS credentials to .env.local
-# AWS_ACCESS_KEY_ID=...
-# AWS_SECRET_ACCESS_KEY=...
-# AWS_REGION=us-east-1
-
-# 4. Start dev server
-npm run dev
-
-# 5. Open browser
-# http://localhost:3000
-```
-
-## Deploying to Vercel
-
-```bash
-# Push to GitHub → connect repo to Vercel
-# Add environment variables in Vercel dashboard
-# Deploy automatically on push to main
-```
+### Earlier UI Changes (same session)
+- Splash → landing page smooth crossfade transition
+- Volume reduced to 18%, music starts from 8-second mark
+- Music auto-starts on page load (muted autoplay → unmutes on first interaction)
+- Music stops when navigating away from landing page
+- Indian flag tricolor hero text gradient
+- Inline language dropdown added then reverted to full-screen picker
 
 ---
 
@@ -404,6 +356,7 @@ npm run dev
 Route (app)                              Size     First Load JS
 ├ ○ /                                    6.07 kB         131 kB
 ├ ƒ /api/chat                            0 B                0 B
+├ ƒ /api/music                           0 B                0 B
 ├ ƒ /api/refresh-schemes                 0 B                0 B
 ├ ƒ /api/session                         0 B                0 B
 ├ ƒ /api/speak                           0 B                0 B
@@ -413,14 +366,15 @@ Route (app)                              Size     First Load JS
 
 ---
 
-## Recent Changes (March 8, 2026)
+## Running Locally
 
-### Bug Fixes
-- **kn/ta/te TTS silent** — Fixed by pre-loading voices via `voiceschanged` event (`voicesRef`). Removed incorrect Hindi/English voice fallback that caused garbled audio for Kannada/Tamil/Telugu text.
-- **Language switch keeps old context** — Fixed with `AbortController`: switching language now immediately cancels any in-flight `/api/chat` request. `AbortError` is caught and ignored silently.
-- **AI responds in wrong language** — Fixed by removing `detected_language` auto-switch. UI language is now always the user's explicitly selected language. The AI's `detected_language` field is ignored for UI state changes.
-- **Voice button doesn't stop after silence** — Fixed with `silenceTimerRef` in `VoiceButton`. Timer resets on every `onresult` event; after 3.5s of no speech, auto-stops and submits.
-- **TTS reads `/` literally** — Fixed with `preprocessForTTS()`: `₹220/day` → `220 rupees per day`, `₹6000/year` → `6000 rupees per year`. Also strips `**bold**` and `# headers` before speaking.
+```bash
+cd "c:/Users/shree/OneDrive/Desktop/AI FOR BHARAT/yojna-setu"
+npm install
+# add .env.local with AWS credentials
+npm run dev
+# open http://localhost:3000
+```
 
 ---
 
